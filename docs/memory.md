@@ -64,7 +64,7 @@
 
 ### 5. Roadmap & Milestone Progress
 
-- [ ] **M0 — Foundations**: Monorepo layout, Docker Compose (Postgres+pgvector, Redis, MinIO, Django, Next.js), base settings, CI pipeline.
+- [x] **M0 — Foundations**: Monorepo layout, Docker Compose (Postgres+pgvector, Redis, MinIO, Django, Next.js), base settings, CI pipeline.
 - [ ] **M1 — Auth & Tenancy**: Custom user model, SimpleJWT with tenant claims, Next.js httpOnly BFF, tenant-scoped managers, dev user switcher.
 - [ ] **M2 — Document Ingestion**: Upload endpoint, magic byte validation, Celery pipeline (parse -> chunk -> embed -> write), deduplication.
 - [ ] **M3 — Access Control & Permissions**: Visibility tiers (`private`, `group`, `tenant`), `document_permissions` table, `permissions` service, test matrix.
