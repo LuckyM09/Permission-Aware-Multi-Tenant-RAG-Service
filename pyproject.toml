@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "node_modules",
+    "*/migrations/*",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = [
+    "E501",   # Line length handled gracefully
+    "RUF012", # Mutable class attributes in Django models
+]
+
+[tool.ruff.lint.per-file-ignores]
+"backend/config/settings/*" = ["F403", "F401"] # Wildcard imports standard in split settings
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "accounts", "tenants", "documents", "ingestion", "permissions", "retrieval", "chat", "audit"]

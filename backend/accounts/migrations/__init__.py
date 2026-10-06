@@ -1,0 +1,3 @@
+"""
+Accounts migrations package.
+"""

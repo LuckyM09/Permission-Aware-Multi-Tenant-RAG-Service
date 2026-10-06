@@ -1,0 +1,149 @@
+name: vaultrag
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL 16 + pgvector Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vaultrag-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vaultrag_db}
+      POSTGRES_USER: ${POSTGRES_USER:-vaultrag_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vaultrag_secure_password_dev}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vaultrag_app} -d ${POSTGRES_DB:-vaultrag_db}"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - vaultrag-net
+
+  # ---------------------------------------------------------------------------
+  # 2. Redis Cache & Celery Broker
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: vaultrag-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vaultrag-net
+
+  # ---------------------------------------------------------------------------
+  # 3. MinIO S3-Compatible Object Storage
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: vaultrag-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 0"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vaultrag-net
+
+  # ---------------------------------------------------------------------------
+  # 4. MinIO Bucket Initialization Helper
+  # ---------------------------------------------------------------------------
+  minio-init:
+    image: minio/mc:latest
+    container_name: vaultrag-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET_NAME:-vaultrag-documents};
+      exit 0;
+      "
+    networks:
+      - vaultrag-net
+
+  # ---------------------------------------------------------------------------
+  # 5. Django REST Framework Backend
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/backend/Dockerfile
+    container_name: vaultrag-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+    networks:
+      - vaultrag-net
+
+  # ---------------------------------------------------------------------------
+  # 6. Next.js App Router Frontend
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../infra/docker/frontend/Dockerfile
+    container_name: vaultrag-frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - vaultrag-net
+
+# -----------------------------------------------------------------------------
+# Networks and Volumes
+# -----------------------------------------------------------------------------
+networks:
+  vaultrag-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

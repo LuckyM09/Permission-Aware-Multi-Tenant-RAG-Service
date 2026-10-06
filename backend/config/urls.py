@@ -1,0 +1,34 @@
+"""
+VaultRAG URL Configuration.
+"""
+
+from django.contrib import admin
+from django.http import JsonResponse
+from django.urls import path
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,
+    TokenRefreshView,
+)
+
+
+def health_check(request):
+    """Basic health check endpoint."""
+    return JsonResponse(
+        {
+            "status": "healthy",
+            "service": "vaultrag-backend",
+            "version": "1.0.0",
+        }
+    )
+
+
+urlpatterns = [
+    # Health checks
+    path("health/", health_check, name="health-check"),
+    path("api/health/", health_check, name="api-health-check"),
+    # Django Admin
+    path("admin/", admin.site.urls),
+    # Authentication (SimpleJWT)
+    path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+]
