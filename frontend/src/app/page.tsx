@@ -75,7 +75,7 @@ export default function HomePage() {
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium tracking-wide">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Milestone 1: Auth & Tenancy Active
+              Milestone 2: Ingestion & Embeddings Pipeline Active
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-indigo-300 bg-clip-text text-transparent">
               VaultRAG
@@ -186,10 +186,32 @@ export default function HomePage() {
             )}
           </div>
 
+          {/* Milestone 2: Document Hub CTA Card */}
+          <div className="p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-950/80 backdrop-blur-md shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📚</span>
+                <h3 className="text-base font-semibold text-slate-100">
+                  Document Knowledge Base & Ingestion
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 max-w-lg">
+                Upload files (PDF, DOCX, TXT, MD), validate signatures, and run the automated recursive chunking and 1,536-dim vector embedding pipeline with tenant and ACL tagging.
+              </p>
+            </div>
+
+            <Link
+              href="/documents"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white transition-all shadow-md shadow-indigo-600/30 whitespace-nowrap self-start sm:self-auto"
+            >
+              Open Documents Hub →
+            </Link>
+          </div>
+
           {/* Quickstart & Repo Link */}
           <div className="p-4 rounded-xl border border-slate-800 bg-[#0F172A]/40 flex items-center justify-between text-xs text-slate-400">
             <span>
-              Multi-tenant RBAC and ACLs are active. Next: Milestone 2 Document Ingestion.
+              Milestone 2 Ingestion pipeline active with HNSW vector index. Next: Milestone 3 Retrieval & ACL Filtering.
             </span>
             <a
               href="https://github.com/LuckyM09/Permission-Aware-Multi-Tenant-RAG-Service"

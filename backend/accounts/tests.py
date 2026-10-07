@@ -134,7 +134,9 @@ class AuthTokenAndTenancyTests(TestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertIn("User is not a member of any active organization", response.data["detail"])
+        self.assertIn(
+            "User is not a member of any active organization", response.data["detail"]
+        )
 
     def test_current_user_me_endpoint(self):
         """Test GET /api/auth/me/ returns authenticated user context and available tenants."""

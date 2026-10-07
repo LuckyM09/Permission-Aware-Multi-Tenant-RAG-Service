@@ -10,7 +10,9 @@ class Command(BaseCommand):
     help = "Seeds initial demo tenants, users, roles, and groups for VaultRAG."
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.NOTICE("Seeding VaultRAG demo tenants and personas..."))
+        self.stdout.write(
+            self.style.NOTICE("Seeding VaultRAG demo tenants and personas...")
+        )
 
         password = "SecurePassword123!"
 

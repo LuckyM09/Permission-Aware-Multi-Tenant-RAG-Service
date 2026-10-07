@@ -56,7 +56,9 @@ def get_user_context(request: Request) -> UserContext:
                 group_ids=group_ids,
             )
         except (ValueError, TypeError) as exc:
-            raise AuthenticationFailed(f"Malformed claims in authentication token: {exc}") from exc
+            raise AuthenticationFailed(
+                f"Malformed claims in authentication token: {exc}"
+            ) from exc
 
     # 2. Fallback path (e.g. SessionAuth, testing, or token without claims): Resolve from database
     membership = (
@@ -70,9 +72,9 @@ def get_user_context(request: Request) -> UserContext:
         raise AuthenticationFailed("User is not associated with any active tenant.")
 
     group_ids = tuple(
-        request.user.group_memberships.filter(group__tenant=membership.tenant).values_list(
-            "group_id", flat=True
-        )
+        request.user.group_memberships.filter(
+            group__tenant=membership.tenant
+        ).values_list("group_id", flat=True)
     )
 
     return UserContext(

@@ -1,0 +1,3 @@
+"""
+Documents application package.
+"""

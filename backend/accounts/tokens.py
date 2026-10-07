@@ -41,18 +41,28 @@ class VaultRAGTokenObtainPairSerializer(TokenObtainPairSerializer):
         )
 
         if not memberships.exists():
-            raise AuthenticationFailed("User is not a member of any active organization.")
+            raise AuthenticationFailed(
+                "User is not a member of any active organization."
+            )
 
         # Select target tenant membership
         target_membership = None
         if requested_tenant_id:
-            target_membership = memberships.filter(tenant_id=requested_tenant_id).first()
+            target_membership = memberships.filter(
+                tenant_id=requested_tenant_id
+            ).first()
             if not target_membership:
-                raise AuthenticationFailed("User is not a member of the requested tenant.")
+                raise AuthenticationFailed(
+                    "User is not a member of the requested tenant."
+                )
         elif requested_tenant_slug:
-            target_membership = memberships.filter(tenant__slug=requested_tenant_slug).first()
+            target_membership = memberships.filter(
+                tenant__slug=requested_tenant_slug
+            ).first()
             if not target_membership:
-                raise AuthenticationFailed("User is not a member of the requested tenant organization.")
+                raise AuthenticationFailed(
+                    "User is not a member of the requested tenant organization."
+                )
         else:
             target_membership = memberships.first()
 

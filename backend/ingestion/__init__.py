@@ -1,0 +1,3 @@
+"""
+Ingestion application package.
+"""

@@ -46,49 +46,26 @@ services:
       - vaultrag-net
 
   # ---------------------------------------------------------------------------
-  # 3. MinIO S3-Compatible Object Storage
+  # 3. MinIO S3-Compatible Object Storage (Deferred to M2 Ingestion)
   # ---------------------------------------------------------------------------
-  minio:
-    image: minio/minio:latest
-    container_name: vaultrag-minio
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:9000/minio/health/live || exit 0"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    networks:
-      - vaultrag-net
+  # minio:
+  #   image: quay.io/minio/minio:RELEASE.2024-05-10T01-41-38Z
+  #   container_name: vaultrag-minio
+  #   restart: unless-stopped
+  #   command: server /data --console-address ":9001"
+  #   environment:
+  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  #   ports:
+  #     - "9000:9000"
+  #     - "9001:9001"
+  #   volumes:
+  #     - minio_data:/data
+  #   networks:
+  #     - vaultrag-net
 
   # ---------------------------------------------------------------------------
-  # 4. MinIO Bucket Initialization Helper
-  # ---------------------------------------------------------------------------
-  minio-init:
-    image: minio/mc:latest
-    container_name: vaultrag-minio-init
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-      /usr/bin/mc mb --ignore-existing local/${MINIO_BUCKET_NAME:-vaultrag-documents};
-      exit 0;
-      "
-    networks:
-      - vaultrag-net
-
-  # ---------------------------------------------------------------------------
-  # 5. Django REST Framework Backend
+  # 4. Django REST Framework Backend
   # ---------------------------------------------------------------------------
   backend:
     build:
@@ -110,13 +87,14 @@ services:
     command: >
       sh -c "
       python manage.py migrate &&
+      python manage.py seed_demo_data &&
       python manage.py runserver 0.0.0.0:8000
       "
     networks:
       - vaultrag-net
 
   # ---------------------------------------------------------------------------
-  # 6. Next.js App Router Frontend
+  # 5. Next.js App Router Frontend
   # ---------------------------------------------------------------------------
   frontend:
     build:
@@ -146,4 +124,3 @@ networks:
 volumes:
   postgres_data:
   redis_data:
-  minio_data:

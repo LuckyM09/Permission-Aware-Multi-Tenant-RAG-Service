@@ -16,7 +16,9 @@ class Tenant(models.Model):
         editable=False,
         help_text="Unique identifier for the tenant",
     )
-    name = models.CharField(max_length=255, help_text="Human-readable organization name")
+    name = models.CharField(
+        max_length=255, help_text="Human-readable organization name"
+    )
     slug = models.SlugField(
         max_length=255,
         unique=True,
