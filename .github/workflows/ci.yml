@@ -73,9 +73,8 @@ jobs:
           REDIS_PORT: 6379
         run: |
           cd backend
-          python manage.py makemigrations accounts
           python manage.py migrate
-          python manage.py test accounts
+          python manage.py test accounts tenants
 
   # ---------------------------------------------------------------------------
   # 2. Frontend Linting & Type Check

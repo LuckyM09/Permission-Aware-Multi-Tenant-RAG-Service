@@ -1,0 +1,3 @@
+"""
+Tenants migrations package.
+"""
