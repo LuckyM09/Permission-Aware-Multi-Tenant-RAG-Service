@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.utils import IntegrityError
 from django.test import TestCase
 
@@ -45,12 +46,13 @@ class TenantModelTests(TestCase):
             role=Role.MEMBER,
         )
 
-        with self.assertRaises(IntegrityError):
-            Membership.objects.create(
-                tenant=self.tenant,
-                user=self.user,
-                role=Role.VIEWER,
-            )
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                Membership.objects.create(
+                    tenant=self.tenant,
+                    user=self.user,
+                    role=Role.VIEWER,
+                )
 
     def test_group_creation_and_uniqueness(self):
         """Test group scoping within a tenant and unique name constraint."""
@@ -62,11 +64,12 @@ class TenantModelTests(TestCase):
         self.assertEqual(str(group), "Engineering (Acme Corp)")
 
         # Duplicate group name within same tenant should fail
-        with self.assertRaises(IntegrityError):
-            Group.objects.create(
-                tenant=self.tenant,
-                name="Engineering",
-            )
+        with transaction.atomic():
+            with self.assertRaises(IntegrityError):
+                Group.objects.create(
+                    tenant=self.tenant,
+                    name="Engineering",
+                )
 
         # Same group name in a different tenant should succeed
         other_tenant = Tenant.objects.create(
