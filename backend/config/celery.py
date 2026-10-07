@@ -3,6 +3,7 @@ Celery configuration for VaultRAG.
 """
 
 import os
+
 from celery import Celery
 
 # Set default Django settings module
