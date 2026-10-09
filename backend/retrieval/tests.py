@@ -43,14 +43,24 @@ class RetrievalEngineTests(TestCase):
         )
 
         # 3. Memberships
-        Membership.objects.create(tenant=self.tenant_acme, user=self.alice, role=Role.ADMIN)
-        Membership.objects.create(tenant=self.tenant_acme, user=self.bob, role=Role.MEMBER)
-        Membership.objects.create(tenant=self.tenant_acme, user=self.charlie, role=Role.MEMBER)
-        Membership.objects.create(tenant=self.tenant_beta, user=self.mallory, role=Role.MEMBER)
+        Membership.objects.create(
+            tenant=self.tenant_acme, user=self.alice, role=Role.ADMIN
+        )
+        Membership.objects.create(
+            tenant=self.tenant_acme, user=self.bob, role=Role.MEMBER
+        )
+        Membership.objects.create(
+            tenant=self.tenant_acme, user=self.charlie, role=Role.MEMBER
+        )
+        Membership.objects.create(
+            tenant=self.tenant_beta, user=self.mallory, role=Role.MEMBER
+        )
 
         # 4. Groups in Acme
         self.group_hr = Group.objects.create(tenant=self.tenant_acme, name="HR")
-        GroupMember.objects.create(group=self.group_hr, user=self.charlie)  # Charlie is in HR
+        GroupMember.objects.create(
+            group=self.group_hr, user=self.charlie
+        )  # Charlie is in HR
 
         # 5. Seed Documents and Chunks in Acme Corp
         # A. Tenant-Wide Document
@@ -78,7 +88,9 @@ class RetrievalEngineTests(TestCase):
             visibility=Document.Visibility.GROUP,
             status=Document.Status.READY,
         )
-        DocumentPermission.objects.create(document=self.doc_salaries, group=self.group_hr)
+        DocumentPermission.objects.create(
+            document=self.doc_salaries, group=self.group_hr
+        )
         self._create_chunk(
             self.tenant_acme,
             self.doc_salaries,
@@ -191,12 +203,20 @@ class RetrievalEngineTests(TestCase):
         query = "CEO base salary executive compensation"
 
         # Bob must NEVER receive the HR-restricted salaries document
-        bob_results = self.retrieval_service.search(user_ctx=bob_ctx, query=query, top_k=5)
-        self.assertFalse(any(r["document_id"] == str(self.doc_salaries.id) for r in bob_results))
+        bob_results = self.retrieval_service.search(
+            user_ctx=bob_ctx, query=query, top_k=5
+        )
+        self.assertFalse(
+            any(r["document_id"] == str(self.doc_salaries.id) for r in bob_results)
+        )
 
         # Charlie (HR member) can access the HR document
-        charlie_results = self.retrieval_service.search(user_ctx=charlie_ctx, query=query, top_k=5)
-        self.assertTrue(any(r["document_id"] == str(self.doc_salaries.id) for r in charlie_results))
+        charlie_results = self.retrieval_service.search(
+            user_ctx=charlie_ctx, query=query, top_k=5
+        )
+        self.assertTrue(
+            any(r["document_id"] == str(self.doc_salaries.id) for r in charlie_results)
+        )
 
     def test_tenant_admin_override(self):
         """
@@ -212,10 +232,14 @@ class RetrievalEngineTests(TestCase):
         )
 
         query = "executive compensation salary"
-        results = self.retrieval_service.search(user_ctx=alice_ctx, query=query, top_k=5)
+        results = self.retrieval_service.search(
+            user_ctx=alice_ctx, query=query, top_k=5
+        )
 
         self.assertGreaterEqual(len(results), 1)
-        self.assertTrue(any(r["document_id"] == str(self.doc_salaries.id) for r in results))
+        self.assertTrue(
+            any(r["document_id"] == str(self.doc_salaries.id) for r in results)
+        )
 
     def test_private_document_owner_isolation(self):
         """
@@ -240,12 +264,20 @@ class RetrievalEngineTests(TestCase):
         query = "self-evaluation notes promotion Senior Director"
 
         # Bob must NEVER retrieve Alice's private performance review
-        bob_results = self.retrieval_service.search(user_ctx=bob_ctx, query=query, top_k=5)
-        self.assertFalse(any(r["document_id"] == str(self.doc_private.id) for r in bob_results))
+        bob_results = self.retrieval_service.search(
+            user_ctx=bob_ctx, query=query, top_k=5
+        )
+        self.assertFalse(
+            any(r["document_id"] == str(self.doc_private.id) for r in bob_results)
+        )
 
         # Alice (owner) retrieves her private document
-        alice_results = self.retrieval_service.search(user_ctx=alice_ctx, query=query, top_k=5)
-        self.assertTrue(any(r["document_id"] == str(self.doc_private.id) for r in alice_results))
+        alice_results = self.retrieval_service.search(
+            user_ctx=alice_ctx, query=query, top_k=5
+        )
+        self.assertTrue(
+            any(r["document_id"] == str(self.doc_private.id) for r in alice_results)
+        )
 
     def test_tenant_wide_sharing(self):
         """
@@ -266,6 +298,76 @@ class RetrievalEngineTests(TestCase):
         self.assertEqual(results[0]["document_title"], "Acme Company Handbook")
         self.assertGreater(results[0]["similarity"], 0.0)
 
+    def test_hybrid_search_and_reranking(self):
+        """
+        Hybrid search combines dense vector and sparse keyword matching with RRF fusion
+        and cross-encoder reranking.
+        """
+        alice_ctx = UserContext(
+            tenant_id=self.tenant_acme.id,
+            user_id=self.alice.id,
+            email=self.alice.email,
+            role=Role.ADMIN,
+            group_ids=(),
+        )
+
+        results = self.retrieval_service.search(
+            user_ctx=alice_ctx,
+            query="wellness flexible benefits",
+            mode="hybrid",
+            rerank=True,
+            top_k=5,
+        )
+
+        self.assertGreaterEqual(len(results), 1)
+        top = results[0]
+        self.assertTrue(top.get("reranked", False))
+        self.assertIn("score", top)
+        self.assertEqual(top["document_title"], "Acme Company Handbook")
+
+    def test_sparse_keyword_search_enforces_zero_data_leakage(self):
+        """
+        Filters on ALL paths: Sparse (keyword) search MUST enforce strict
+        tenant isolation and ACL filtering, identical to dense vector search.
+        """
+        # 1. Cross-Tenant: Mallory in Beta Labs searching keywords from Acme
+        mallory_ctx = UserContext(
+            tenant_id=self.tenant_beta.id,
+            user_id=self.mallory.id,
+            email=self.mallory.email,
+            role=Role.MEMBER,
+            group_ids=(),
+        )
+        mallory_results = self.retrieval_service.search(
+            user_ctx=mallory_ctx,
+            query="wellness benefits",
+            mode="sparse",
+            top_k=5,
+        )
+        # Mallory must NEVER see Acme's handbook
+        self.assertFalse(
+            any(r["document_id"] == str(self.doc_handbook.id) for r in mallory_results)
+        )
+
+        # 2. ACL Group Isolation: Bob (non-HR) keyword searching for "salary"
+        bob_ctx = UserContext(
+            tenant_id=self.tenant_acme.id,
+            user_id=self.bob.id,
+            email=self.bob.email,
+            role=Role.MEMBER,
+            group_ids=(),
+        )
+        bob_results = self.retrieval_service.search(
+            user_ctx=bob_ctx,
+            query="salary compensation",
+            mode="sparse",
+            top_k=5,
+        )
+        # Bob must NEVER see the HR salaries document
+        self.assertFalse(
+            any(r["document_id"] == str(self.doc_salaries.id) for r in bob_results)
+        )
+
 
 class RetrievalAPITests(TestCase):
     """
@@ -275,7 +377,9 @@ class RetrievalAPITests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.tenant = Tenant.objects.create(name="Acme Corp", slug="acme-corp")
-        self.user = User.objects.create_user(email="alice@acme.com", password="Password123!")
+        self.user = User.objects.create_user(
+            email="alice@acme.com", password="Password123!"
+        )
         Membership.objects.create(tenant=self.tenant, user=self.user, role=Role.ADMIN)
 
         self.token = str(RefreshToken.for_user(self.user).access_token)
@@ -303,7 +407,9 @@ class RetrievalAPITests(TestCase):
         """Unauthenticated requests must be rejected with 401."""
         unauthenticated_client = APIClient()
         url = reverse("retrieval_search")
-        response = unauthenticated_client.post(url, {"query": "REST API"}, format="json")
+        response = unauthenticated_client.post(
+            url, {"query": "REST API"}, format="json"
+        )
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_search_api_valid_query(self):
@@ -330,3 +436,23 @@ class RetrievalAPITests(TestCase):
         url = reverse("retrieval_search")
         response = self.client.post(url, {"query": "   "}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_search_api_hybrid_and_reranking_params(self):
+        """API accepts mode, rerank, and alpha parameters."""
+        url = reverse("retrieval_search")
+        response = self.client.post(
+            url,
+            {
+                "query": "REST API endpoints",
+                "top_k": 3,
+                "mode": "hybrid",
+                "rerank": True,
+                "alpha": 0.6,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["mode"], "hybrid")
+        self.assertTrue(response.data["reranked"])
+        self.assertGreaterEqual(response.data["total_found"], 1)

@@ -35,6 +35,9 @@ interface SearchResultItem {
   text: string;
   distance: number;
   similarity: number;
+  score?: number;
+  retrieval_mode?: "hybrid" | "dense" | "sparse";
+  reranked?: boolean;
   metadata: Record<string, unknown>;
 }
 
@@ -46,6 +49,9 @@ export default function RetrievalPage() {
   const [query, setQuery] = useState("");
   const [topK, setTopK] = useState(5);
   const [threshold, setThreshold] = useState(0.0);
+  const [mode, setMode] = useState<"hybrid" | "dense" | "sparse">("hybrid");
+  const [rerank, setRerank] = useState(true);
+  const [alpha, setAlpha] = useState(0.5);
 
   // Search Results & State
   const [isSearching, setIsSearching] = useState(false);
@@ -103,6 +109,9 @@ export default function RetrievalPage() {
           query: searchQuery,
           top_k: topK,
           threshold: threshold,
+          mode: mode,
+          rerank: rerank,
+          alpha: alpha,
         }),
       });
 
@@ -198,15 +207,15 @@ export default function RetrievalPage() {
         <div className="border-b border-slate-800 pb-6">
           <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium tracking-wide mb-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Milestone 3: Permission-Aware Vector Search Engine
+            Hybrid Search & Cross-Encoder Reranking
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white">
-            Semantic Vector Retrieval
+            Permission-Aware Hybrid Retrieval
           </h1>
           <p className="text-slate-400 text-sm mt-1 max-w-3xl">
-            Query 1,536-dimensional embeddings with native PostgreSQL pgvector cosine ranking.
-            Security policies and tenant isolation are enforced directly in the database SQL clause:
-            users only receive chunks they are cryptographically authorized to view.
+            Combines dense vector embeddings (pgvector cosine distance) with sparse keyword matching (PostgreSQL BM25)
+            via Reciprocal Rank Fusion (RRF) and Cross-Encoder Reranking.
+            Tenant isolation and ACL security filters are enforced strictly at the SQL level across all retrieval paths.
           </p>
         </div>
 
@@ -241,7 +250,8 @@ export default function RetrievalPage() {
 
         {/* Search Query Form */}
         <div className="p-6 rounded-2xl border border-slate-800 bg-[#0F172A]/90 backdrop-blur-md shadow-xl space-y-6">
-          <form onSubmit={handleSearch} className="space-y-4">
+          <form onSubmit={handleSearch} className="space-y-5">
+            {/* Main Input */}
             <div className="relative">
               <input
                 type="text"
@@ -291,7 +301,7 @@ export default function RetrievalPage() {
             </div>
 
             {/* Quick Test Chips */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
               <span className="text-[11px] text-slate-500 font-medium">Quick Test Queries:</span>
               {suggestions.map((sugg) => (
                 <button
@@ -305,41 +315,133 @@ export default function RetrievalPage() {
               ))}
             </div>
 
-            {/* Parameters (Top-k & Threshold) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-slate-800/80">
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <label className="text-slate-400 font-medium">Top-K Neighbors: {topK}</label>
-                  <span className="text-slate-500 text-[10px]">Max chunks returned</span>
+            {/* Modality Selector & Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4 border-t border-slate-800/80">
+              {/* Search Modality Mode */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-slate-400 font-medium block">
+                  Search Modality
+                </label>
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setMode("hybrid")}
+                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                      mode === "hybrid"
+                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    ⚡ Hybrid (RRF)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("dense")}
+                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                      mode === "dense"
+                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    🧠 Vector
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode("sparse")}
+                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                      mode === "sparse"
+                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    🔤 Keyword
+                  </button>
                 </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="20"
-                  value={topK}
-                  onChange={(e) => setTopK(parseInt(e.target.value))}
-                  className="w-full accent-indigo-500 cursor-pointer"
-                />
               </div>
 
-              <div>
-                <div className="flex items-center justify-between text-xs mb-1">
-                  <label className="text-slate-400 font-medium">
-                    Similarity Threshold: {Math.round(threshold * 100)}%
-                  </label>
-                  <span className="text-slate-500 text-[10px]">Filter cutoff</span>
+              {/* Cross-Encoder Reranker Toggle */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="text-slate-400 font-medium">Cross-Encoder Reranker</label>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {rerank ? "ENABLED" : "BYPASSED"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRerank(!rerank)}
+                  className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    rerank
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                      : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      rerank ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
+                    }`}
+                  />
+                  {rerank ? "✨ Reranker Active" : "Reranker Off"}
+                </button>
+              </div>
+
+              {/* Sliders: Top-K & Threshold */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <label className="text-slate-400 font-medium">Top-K: {topK}</label>
+                  <span className="text-[10px] text-slate-500">
+                    Threshold: {Math.round(threshold * 100)}%
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    value={topK}
+                    onChange={(e) => setTopK(parseInt(e.target.value))}
+                    className="accent-indigo-500 cursor-pointer"
+                    title={`Top-K: ${topK}`}
+                  />
+                  <input
+                    type="range"
+                    min="0"
+                    max="90"
+                    step="5"
+                    value={threshold * 100}
+                    onChange={(e) => setThreshold(parseFloat(e.target.value) / 100)}
+                    className="accent-indigo-500 cursor-pointer"
+                    title={`Threshold: ${Math.round(threshold * 100)}%`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Hybrid Alpha Balance Slider */}
+            {mode === "hybrid" && (
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">
+                    Hybrid Weight Balance:{" "}
+                    <span className="text-indigo-300 font-medium">
+                      {Math.round(alpha * 100)}% Dense Vector / {Math.round((1 - alpha) * 100)}% Keyword
+                    </span>
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    α = {alpha.toFixed(2)}
+                  </span>
                 </div>
                 <input
                   type="range"
-                  min="0"
-                  max="95"
-                  step="5"
-                  value={threshold * 100}
-                  onChange={(e) => setThreshold(parseFloat(e.target.value) / 100)}
+                  min="0.0"
+                  max="1.0"
+                  step="0.05"
+                  value={alpha}
+                  onChange={(e) => setAlpha(parseFloat(e.target.value))}
                   className="w-full accent-indigo-500 cursor-pointer"
                 />
               </div>
-            </div>
+            )}
           </form>
 
           {searchError && (
@@ -362,7 +464,8 @@ export default function RetrievalPage() {
                 )}
               </div>
               <span className="text-slate-500">
-                SQL Pre-Filter applied with cosine ranking
+                Mode: <span className="uppercase text-slate-400 font-mono">{mode}</span>
+                {rerank ? " + Reranked" : ""}
               </span>
             </div>
 
@@ -382,7 +485,9 @@ export default function RetrievalPage() {
             ) : (
               <div className="grid grid-cols-1 gap-4">
                 {results.map((result, idx) => {
-                  const similarityPct = Math.round(result.similarity * 100);
+                  const displayScore = Math.round(
+                    (result.score !== undefined ? result.score : result.similarity) * 100
+                  );
                   return (
                     <div
                       key={result.chunk_id}
@@ -401,6 +506,30 @@ export default function RetrievalPage() {
                         </div>
 
                         <div className="flex items-center gap-2">
+                          {/* Provenance Tag */}
+                          {result.retrieval_mode === "hybrid" && (
+                            <span className="px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px] font-medium font-mono">
+                              ⚡ Hybrid RRF
+                            </span>
+                          )}
+                          {result.retrieval_mode === "dense" && (
+                            <span className="px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium font-mono">
+                              🧠 Dense Vector
+                            </span>
+                          )}
+                          {result.retrieval_mode === "sparse" && (
+                            <span className="px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[10px] font-medium font-mono">
+                              🔤 Keyword BM25
+                            </span>
+                          )}
+
+                          {/* Reranked Tag */}
+                          {result.reranked && (
+                            <span className="px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium font-mono">
+                              ✨ Reranked
+                            </span>
+                          )}
+
                           {/* Scope Badge */}
                           {result.visibility === "private" && (
                             <span className="px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[10px] font-medium">
@@ -409,19 +538,19 @@ export default function RetrievalPage() {
                           )}
                           {result.visibility === "group" && (
                             <span className="px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium">
-                              👥 Group Restricted
+                              👥 Group
                             </span>
                           )}
                           {result.visibility === "tenant" && (
                             <span className="px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium">
-                              🏢 Tenant-Wide
+                              🏢 Tenant
                             </span>
                           )}
 
-                          {/* Similarity Badge */}
+                          {/* Score Badge */}
                           <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold font-mono">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            {similarityPct}% Match
+                            {displayScore}%
                           </div>
                         </div>
                       </div>

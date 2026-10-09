@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 
 class SearchRequestSerializer(serializers.Serializer):
-    """Validates vector retrieval search query arguments."""
+    """Validates vector and hybrid retrieval search query arguments."""
 
     query = serializers.CharField(
         required=True,
@@ -23,12 +23,30 @@ class SearchRequestSerializer(serializers.Serializer):
         default=0.0,
         min_value=0.0,
         max_value=1.0,
-        help_text="Minimum cosine similarity cutoff (0.0 to 1.0)",
+        help_text="Minimum score cutoff (0.0 to 1.0)",
+    )
+    mode = serializers.ChoiceField(
+        choices=["hybrid", "dense", "sparse"],
+        required=False,
+        default="hybrid",
+        help_text="Search modality: 'hybrid' (RRF), 'dense' (Vector), or 'sparse' (BM25)",
+    )
+    rerank = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Whether to apply cross-encoder reranking",
+    )
+    alpha = serializers.FloatField(
+        required=False,
+        default=0.5,
+        min_value=0.0,
+        max_value=1.0,
+        help_text="Dense vs sparse weight balance in hybrid mode (0.0 to 1.0)",
     )
 
 
 class SearchResultItemSerializer(serializers.Serializer):
-    """Represents a retrieved chunk with similarity score and metadata."""
+    """Represents a retrieved chunk with similarity score, provenance, and metadata."""
 
     chunk_id = serializers.UUIDField()
     document_id = serializers.UUIDField()
@@ -37,6 +55,9 @@ class SearchResultItemSerializer(serializers.Serializer):
     text = serializers.CharField()
     distance = serializers.FloatField()
     similarity = serializers.FloatField()
+    score = serializers.FloatField(required=False)
+    retrieval_mode = serializers.CharField(required=False, default="hybrid")
+    reranked = serializers.BooleanField(required=False, default=False)
     metadata = serializers.DictField()
 
 
@@ -44,5 +65,7 @@ class SearchResponseSerializer(serializers.Serializer):
     """Standardized search response payload."""
 
     query = serializers.CharField()
+    mode = serializers.CharField(required=False, default="hybrid")
+    reranked = serializers.BooleanField(required=False, default=True)
     results = SearchResultItemSerializer(many=True)
     total_found = serializers.IntegerField()

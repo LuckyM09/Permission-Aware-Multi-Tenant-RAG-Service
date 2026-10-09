@@ -11,8 +11,9 @@ from .services import RetrievalService
 class SearchView(APIView):
     """
     POST /api/v1/retrieval/search/
-    Executes a permission-filtered vector similarity search across documents.
-    Only returns chunks accessible by the authenticated user's tenant, role, and groups.
+    Executes a permission-filtered hybrid vector and keyword search across documents.
+    Applies Reciprocal Rank Fusion (RRF) and Cross-Encoder Reranking while strictly
+    enforcing zero data leakage across all retrieval paths.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -29,16 +30,24 @@ class SearchView(APIView):
         query = serializer.validated_data["query"]
         top_k = serializer.validated_data.get("top_k", 5)
         threshold = serializer.validated_data.get("threshold", 0.0)
+        mode = serializer.validated_data.get("mode", "hybrid")
+        rerank = serializer.validated_data.get("rerank", True)
+        alpha = serializer.validated_data.get("alpha", 0.5)
 
         results = self.retrieval_service.search(
             user_ctx=user_ctx,
             query=query,
             top_k=top_k,
             threshold=threshold,
+            mode=mode,
+            rerank=rerank,
+            alpha=alpha,
         )
 
         response_data = {
             "query": query,
+            "mode": mode,
+            "reranked": rerank,
             "results": results,
             "total_found": len(results),
         }
