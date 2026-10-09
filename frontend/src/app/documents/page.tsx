@@ -295,6 +295,12 @@ export default function DocumentsPage() {
               >
                 Documents & Ingestion
               </Link>
+              <Link
+                href="/retrieval"
+                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+              >
+                Semantic Search
+              </Link>
             </nav>
           </div>
 

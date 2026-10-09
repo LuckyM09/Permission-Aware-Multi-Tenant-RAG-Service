@@ -4,7 +4,7 @@ VaultRAG URL Configuration.
 
 from django.contrib import admin
 from django.http import JsonResponse
-from django.urls import path
+from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.tokens import VaultRAGTokenObtainPairView
@@ -48,4 +48,6 @@ urlpatterns = [
         DocumentDetailView.as_view(),
         name="document_detail",
     ),
+    # Semantic Retrieval & Search
+    path("api/v1/retrieval/", include("retrieval.urls")),
 ]
