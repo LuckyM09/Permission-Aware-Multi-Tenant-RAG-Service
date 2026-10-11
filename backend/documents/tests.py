@@ -11,7 +11,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from documents.models import Chunk, Document, DocumentPermission
 from ingestion.chunker import RecursiveTextChunker
 from ingestion.embedder import EmbeddingAdapter
-from ingestion.parsers import detect_file_type
+from ingestion.parsers import (
+    detect_file_type,
+    extract_text_from_file,
+    html_table_to_markdown,
+    sanitize_and_clean_text,
+)
 from tenants.models import Group, GroupMember, Membership, Role, Tenant
 
 User = get_user_model()
@@ -112,6 +117,61 @@ class IngestionEngineTests(TestCase):
         # Vector must be normalized to unit length (L2 norm approx 1.0)
         norm = math.sqrt(sum(x * x for x in vector))
         self.assertAlmostEqual(norm, 1.0, places=4)
+
+    def test_text_sanitization(self):
+        """Test sanitization cleans null bytes, zero-width chars, and excess newlines."""
+        dirty = "Hello\x00World!\u200b\n\n\n\nThis is   spaced   text.\n\n\nDone."
+        cleaned = sanitize_and_clean_text(dirty)
+        self.assertNotIn("\x00", cleaned)
+        self.assertNotIn("\u200b", cleaned)
+        self.assertNotIn("\n\n\n", cleaned)
+        self.assertIn("Hello", cleaned)
+        self.assertIn("World!", cleaned)
+
+    def test_html_table_to_markdown(self):
+        """Test HTML table string conversion to Markdown table syntax."""
+        html = (
+            "<table>"
+            "<tr><th>Quarter</th><th>Revenue</th></tr>"
+            "<tr><td>Q1</td><td>$1.2M</td></tr>"
+            "<tr><td>Q2</td><td>$1.8M</td></tr>"
+            "</table>"
+        )
+        md = html_table_to_markdown(html)
+        self.assertIsNotNone(md)
+        self.assertIn("| Quarter | Revenue |", md)
+        self.assertIn("| --- | --- |", md)
+        self.assertIn("| Q1 | $1.2M |", md)
+        self.assertIn("| Q2 | $1.8M |", md)
+
+    def test_unstructured_docx_extraction_with_table(self):
+        """Test extraction from a generated DOCX with heading and structured table."""
+        import io
+
+        import docx
+
+        doc = docx.Document()
+        doc.add_heading("Financial Summary", level=1)
+        doc.add_paragraph("This is the annual summary.")
+        table = doc.add_table(rows=2, cols=2)
+        table.cell(0, 0).text = "Metric"
+        table.cell(0, 1).text = "Amount"
+        table.cell(1, 0).text = "ARR"
+        table.cell(1, 1).text = "$5M"
+
+        buf = io.BytesIO()
+        doc.save(buf)
+        docx_bytes = buf.getvalue()
+
+        file_type = (
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        extracted = extract_text_from_file(docx_bytes, file_type)
+
+        self.assertIn("Financial Summary", extracted)
+        self.assertIn("annual summary", extracted)
+        self.assertIn("ARR", extracted)
+        self.assertIn("$5M", extracted)
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
