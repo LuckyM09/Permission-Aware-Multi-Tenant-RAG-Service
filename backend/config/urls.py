@@ -2,6 +2,8 @@
 VaultRAG URL Configuration.
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
@@ -51,3 +53,5 @@ urlpatterns = [
     # Semantic Retrieval & Search
     path("api/v1/retrieval/", include("retrieval.urls")),
 ]
+
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -151,12 +151,19 @@ def _extract_with_unstructured(file_bytes: bytes, file_type: str) -> Optional[st
             return None
 
         extracted_sections: list[str] = []
+        current_page = None
         for el in elements:
             el_type = type(el).__name__
 
             # Skip noisy page headers and footers (e.g., page numbers, repeating headers)
             if el_type in ("Header", "Footer"):
                 continue
+
+            # Track page transitions
+            el_page = getattr(getattr(el, "metadata", None), "page_number", None)
+            if el_page and el_page != current_page:
+                current_page = el_page
+                extracted_sections.append(f"\n[Page {current_page}]\n")
 
             # Handle structured tables
             if el_type == "Table":
@@ -193,6 +200,65 @@ def _extract_with_unstructured(file_bytes: bytes, file_type: str) -> Optional[st
             f"[unstructured] Failed to parse document with unstructured: {exc}. Falling back to standard parser."
         )
         return None
+
+
+def extract_images_from_pdf(
+    file_bytes: bytes,
+    min_width: int = 100,
+    min_height: int = 100,
+    min_size_bytes: int = 500,
+) -> list[dict]:
+    """
+    Extracts embedded raster images from PDF pages.
+    Filters out small icons, bullets, or decorative spacers below min dimensions.
+    Returns:
+        [
+            {
+                "page": int, # 1-indexed
+                "index": int,
+                "filename": str,
+                "data": bytes,
+                "width": int,
+                "height": int,
+                "format": str,
+            }
+        ]
+    """
+    extracted_images: list[dict] = []
+    try:
+        from PIL import Image
+        from pypdf import PdfReader
+
+        reader = PdfReader(io.BytesIO(file_bytes))
+        for page_idx, page in enumerate(reader.pages, start=1):
+            for img_idx, img in enumerate(page.images):
+                raw_bytes = img.data
+                if len(raw_bytes) < min_size_bytes:
+                    continue
+                try:
+                    pil_img = Image.open(io.BytesIO(raw_bytes))
+                    width, height = pil_img.size
+                    if width < min_width or height < min_height:
+                        continue
+                    fmt = (pil_img.format or "PNG").upper()
+                    ext = "jpg" if fmt == "JPEG" else fmt.lower()
+                    extracted_images.append(
+                        {
+                            "page": page_idx,
+                            "index": img_idx,
+                            "filename": f"page_{page_idx}_fig_{img_idx}.{ext}",
+                            "data": raw_bytes,
+                            "width": width,
+                            "height": height,
+                            "format": fmt,
+                        }
+                    )
+                except Exception:
+                    continue
+    except Exception as exc:
+        logger.warning(f"[extract_images_from_pdf] Failed to extract images: {exc}")
+
+    return extracted_images
 
 
 def extract_text_from_file(file_bytes: bytes, file_type: str) -> str:

@@ -1,22 +1,32 @@
 import logging
+import re
 
 from celery import shared_task
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from django.db import transaction
 
 from documents.models import Chunk, Document
 
 from .chunker import RecursiveTextChunker
 from .embedder import EmbeddingAdapter
-from .parsers import extract_text_from_file
+from .parsers import extract_images_from_pdf, extract_text_from_file
 
 logger = logging.getLogger(__name__)
+
+
+def find_chunk_page(full_text: str, char_start: int) -> int:
+    """Detects the 1-indexed document page of a chunk using [Page X] markers."""
+    preceding = full_text[: max(0, char_start)]
+    matches = list(re.finditer(r"\[Page\s+(\d+)\]", preceding))
+    return int(matches[-1].group(1)) if matches else 1
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
 def ingest_document_task(self, document_id: str):
     """
     Asynchronous Celery pipeline that parses, chunks, embeds,
-    and transactionally persists document chunks.
+    extracts embedded figures, and transactionally persists document chunks.
     """
     try:
         document = Document.objects.select_related("tenant").get(id=document_id)
@@ -38,12 +48,44 @@ def ingest_document_task(self, document_id: str):
         with document.file.open("rb") as f:
             file_bytes = f.read()
 
-        # 2. Extract text
+        # 2. Extract & persist embedded figures/images (if PDF)
+        stored_images = []
+        if document.file_type == "application/pdf":
+            try:
+                extracted_images = extract_images_from_pdf(file_bytes)
+                for img in extracted_images:
+                    rel_path = f"documents/{document.tenant_id}/{document.id}/images/{img['filename']}"
+                    if default_storage.exists(rel_path):
+                        default_storage.delete(rel_path)
+                    saved_path = default_storage.save(
+                        rel_path, ContentFile(img["data"])
+                    )
+                    image_url = default_storage.url(saved_path)
+                    stored_images.append(
+                        {
+                            "url": image_url,
+                            "filename": img["filename"],
+                            "page": img["page"],
+                            "width": img["width"],
+                            "height": img["height"],
+                            "format": img["format"],
+                        }
+                    )
+                if stored_images:
+                    logger.info(
+                        f"[Ingestion] Extracted & saved {len(stored_images)} figures for document {document.id}"
+                    )
+            except Exception as img_exc:
+                logger.warning(
+                    f"[Ingestion] Image extraction skipped due to error: {img_exc}"
+                )
+
+        # 3. Extract text
         text = extract_text_from_file(file_bytes, document.file_type)
         if not text or not text.strip():
             raise ValueError("Extracted text is empty or unreadable.")
 
-        # 3. Chunk text
+        # 4. Chunk text
         chunker = RecursiveTextChunker(chunk_size=600, chunk_overlap=100)
         text_chunks = chunker.split_text(text)
         if not text_chunks:
@@ -53,31 +95,39 @@ def ingest_document_task(self, document_id: str):
             f"[Ingestion] Generated {len(text_chunks)} chunks for document {document.id}"
         )
 
-        # 4. Generate embeddings
+        # 5. Generate embeddings
         adapter = EmbeddingAdapter()
         chunk_texts = [tc.text for tc in text_chunks]
         embeddings = adapter.get_embeddings_batch(chunk_texts)
 
-        # 5. Transactionally insert chunks & update status
+        # 6. Transactionally insert chunks & update status
         with transaction.atomic():
             # Purge existing chunks for idempotency
             Chunk.objects.filter(document=document).delete()
 
-            chunks_to_create = [
-                Chunk(
-                    tenant=document.tenant,
-                    document=document,
-                    position=tc.position,
-                    text=tc.text,
-                    embedding=embeddings[idx],
-                    metadata={
-                        "token_count": tc.token_count_approx,
-                        "char_start": tc.char_start,
-                        "char_end": tc.char_end,
-                    },
+            chunks_to_create = []
+            for idx, tc in enumerate(text_chunks):
+                chunk_page = find_chunk_page(text, tc.char_start)
+                # Find images belonging to this page
+                chunk_images = [
+                    img for img in stored_images if img["page"] == chunk_page
+                ]
+                chunks_to_create.append(
+                    Chunk(
+                        tenant=document.tenant,
+                        document=document,
+                        position=tc.position,
+                        text=tc.text,
+                        embedding=embeddings[idx],
+                        metadata={
+                            "token_count": tc.token_count_approx,
+                            "char_start": tc.char_start,
+                            "char_end": tc.char_end,
+                            "page": chunk_page,
+                            "images": chunk_images,
+                        },
+                    )
                 )
-                for idx, tc in enumerate(text_chunks)
-            ]
 
             Chunk.objects.bulk_create(chunks_to_create)
 
@@ -85,6 +135,8 @@ def ingest_document_task(self, document_id: str):
             document.error_message = ""
             document.metadata["chunk_count"] = len(chunks_to_create)
             document.metadata["char_count"] = len(text)
+            document.metadata["images"] = stored_images
+            document.metadata["image_count"] = len(stored_images)
             document.save(
                 update_fields=["status", "error_message", "metadata", "updated_at"]
             )

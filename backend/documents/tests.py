@@ -13,6 +13,7 @@ from ingestion.chunker import RecursiveTextChunker
 from ingestion.embedder import EmbeddingAdapter
 from ingestion.parsers import (
     detect_file_type,
+    extract_images_from_pdf,
     extract_text_from_file,
     html_table_to_markdown,
     sanitize_and_clean_text,
@@ -172,6 +173,25 @@ class IngestionEngineTests(TestCase):
         self.assertIn("annual summary", extracted)
         self.assertIn("ARR", extracted)
         self.assertIn("$5M", extracted)
+
+    def test_extract_images_from_pdf(self):
+        """Test extraction of embedded raster figures from a PDF."""
+        import io
+
+        from PIL import Image
+
+        # Generate a test image in a PDF
+        img = Image.new("RGB", (250, 250), color="blue")
+        pdf_buf = io.BytesIO()
+        img.save(pdf_buf, format="PDF")
+        pdf_bytes = pdf_buf.getvalue()
+
+        extracted = extract_images_from_pdf(pdf_bytes, min_size_bytes=100)
+        self.assertEqual(len(extracted), 1)
+        self.assertEqual(extracted[0]["page"], 1)
+        self.assertEqual(extracted[0]["width"], 250)
+        self.assertEqual(extracted[0]["height"], 250)
+        self.assertTrue(extracted[0]["filename"].startswith("page_1_fig_"))
 
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)

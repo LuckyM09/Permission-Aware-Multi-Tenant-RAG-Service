@@ -560,6 +560,61 @@ export default function RetrievalPage() {
                         {result.text}
                       </p>
 
+                      {/* Attached Figures / Visual Elements */}
+                      {Array.isArray(result.metadata?.images) &&
+                        (
+                          result.metadata.images as Array<{
+                            url: string;
+                            filename: string;
+                            page?: number;
+                            width?: number;
+                            height?: number;
+                          }>
+                        ).length > 0 && (
+                          <div className="space-y-2 pt-1 border-t border-slate-800/50">
+                            <span className="text-[11px] font-semibold text-indigo-300 flex items-center gap-1.5">
+                              <span>🖼️</span> Attached Figures & Diagrams (Page{" "}
+                              {String(
+                                (
+                                  result.metadata.images as Array<{
+                                    page?: number;
+                                  }>
+                                )[0]?.page || "—"
+                              )}
+                              ):
+                            </span>
+                            <div className="flex flex-wrap gap-2.5">
+                              {(
+                                result.metadata.images as Array<{
+                                  url: string;
+                                  filename: string;
+                                  page?: number;
+                                  width?: number;
+                                  height?: number;
+                                }>
+                              ).map((img, imgIdx) => (
+                                <a
+                                  key={imgIdx}
+                                  href={img.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="group relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950/80 hover:border-indigo-500/80 transition-all p-1 inline-block"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={img.url}
+                                    alt={img.filename}
+                                    className="h-28 max-w-xs object-cover rounded-lg group-hover:scale-[1.02] transition-transform"
+                                  />
+                                  <div className="absolute inset-x-1 bottom-1 bg-slate-950/80 backdrop-blur-xs py-0.5 px-1.5 text-[9px] font-mono text-slate-300 truncate">
+                                    {img.filename}
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                       {/* Provenance & Distance Footer */}
                       <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
                         <div className="flex items-center gap-3 font-mono">
