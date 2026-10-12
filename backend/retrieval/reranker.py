@@ -35,11 +35,6 @@ class RerankerAdapter:
         if not candidates:
             return []
 
-        if len(candidates) == 1:
-            candidates[0]["rerank_score"] = 0.95
-            candidates[0]["reranked"] = True
-            return candidates
-
         if self.use_cohere:
             try:
                 return self._rerank_cohere(query, candidates, top_k)

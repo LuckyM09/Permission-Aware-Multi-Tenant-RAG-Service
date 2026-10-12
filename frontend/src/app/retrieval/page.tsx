@@ -183,6 +183,12 @@ export default function RetrievalPage() {
               >
                 Semantic Search
               </Link>
+              <Link
+                href="/chat"
+                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+              >
+                💬 Chat Engine
+              </Link>
             </nav>
           </div>
 

@@ -73,16 +73,16 @@ export default function HomePage() {
         <div className="relative z-10 max-w-4xl w-full space-y-8">
           {/* Header */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium tracking-wide">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-medium tracking-wide">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Milestone 3: Semantic Retrieval & ACL Filtering Active
+              Milestone 4: Filtered Retrieval & Chat Engine Active
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-100 via-slate-200 to-indigo-300 bg-clip-text text-transparent">
               VaultRAG
             </h1>
             <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
-              Permission-Aware Multi-Tenant RAG Service with SQL-Level Vector
-              Pre-Filtering and Database Row-Level Security.
+              Permission-Aware Multi-Tenant RAG Service powered by NVIDIA Nemotron-3-Ultra-550B,
+              SQL-Level Vector Pre-Filtering, and Anti-Leak Citation Shielding.
             </p>
           </div>
 
@@ -186,6 +186,28 @@ export default function HomePage() {
             )}
           </div>
 
+          {/* Milestone 4: Anti-Leak Chat Engine CTA Card */}
+          <div className="p-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-slate-950/80 backdrop-blur-md shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">💬</span>
+                <h3 className="text-base font-semibold text-slate-100">
+                  Anti-Leak Chat Engine (NVIDIA Nemotron-3-Ultra-550B)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 max-w-lg">
+                Interactive multi-tenant Q&A with live SSE streaming, XML delimiter context fencing, citation verification, and visual figure inspection.
+              </p>
+            </div>
+
+            <Link
+              href="/chat"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white transition-all shadow-md shadow-emerald-600/30 whitespace-nowrap self-start sm:self-auto"
+            >
+              Open Chat Engine →
+            </Link>
+          </div>
+
           {/* Milestone 2: Document Hub CTA Card */}
           <div className="p-6 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-slate-950/80 backdrop-blur-md shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -233,7 +255,7 @@ export default function HomePage() {
           {/* Quickstart & Repo Link */}
           <div className="p-4 rounded-xl border border-slate-800 bg-[#0F172A]/40 flex items-center justify-between text-xs text-slate-400">
             <span>
-              Milestone 3 Retrieval & ACL Filtering active. Next: Milestone 4 RAG Generation & Anti-Leak Prompts.
+              Milestone 4 Chat Engine & Anti-Leak Shield active. Next: Milestone 5 Row-Level Security (RLS) & Audit Logging.
             </span>
             <a
               href="https://github.com/LuckyM09/Permission-Aware-Multi-Tenant-RAG-Service"
