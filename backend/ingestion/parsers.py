@@ -283,22 +283,33 @@ def extract_text_from_file(file_bytes: bytes, file_type: str) -> str:
 
             doc = fitz.open(stream=file_bytes, filetype="pdf")
             text_parts = []
-            for page in doc:
-                text_parts.append(page.get_text())
+            for page_idx, page in enumerate(doc, start=1):
+                page_text = page.get_text()
+                if page_text and page_text.strip():
+                    text_parts.append(f"[Page {page_idx}]\n{page_text.strip()}")
             doc.close()
-            return sanitize_and_clean_text("\n\n".join(text_parts))
-        except ImportError:
-            try:
-                from pypdf import PdfReader
+            parsed = "\n\n".join(text_parts).strip()
+            if parsed:
+                return sanitize_and_clean_text(parsed)
+        except Exception as exc:
+            logger.warning(f"[extract_text_from_file] PyMuPDF extraction failed: {exc}")
 
-                reader = PdfReader(io.BytesIO(file_bytes))
-                return sanitize_and_clean_text(
-                    "\n\n".join(page.extract_text() or "" for page in reader.pages)
-                )
-            except Exception:
-                return sanitize_and_clean_text(
-                    file_bytes.decode("latin-1", errors="ignore")
-                )
+        try:
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(file_bytes))
+            text_parts = []
+            for page_idx, page in enumerate(reader.pages, start=1):
+                page_text = page.extract_text()
+                if page_text and page_text.strip():
+                    text_parts.append(f"[Page {page_idx}]\n{page_text.strip()}")
+            parsed = "\n\n".join(text_parts).strip()
+            if parsed:
+                return sanitize_and_clean_text(parsed)
+        except Exception as exc:
+            logger.warning(f"[extract_text_from_file] pypdf extraction failed: {exc}")
+
+        raise ValueError("Could not extract legible text from PDF document.")
 
     if file_type in (
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -308,12 +319,13 @@ def extract_text_from_file(file_bytes: bytes, file_type: str) -> str:
             import docx
 
             doc = docx.Document(io.BytesIO(file_bytes))
-            paragraphs = [p.text for p in doc.paragraphs if p.text]
-            return sanitize_and_clean_text("\n\n".join(paragraphs))
-        except Exception:
-            return sanitize_and_clean_text(
-                file_bytes.decode("latin-1", errors="ignore")
-            )
+            paragraphs = [p.text.strip() for p in doc.paragraphs if p.text and p.text.strip()]
+            if paragraphs:
+                return sanitize_and_clean_text("\n\n".join(paragraphs))
+        except Exception as exc:
+            logger.warning(f"[extract_text_from_file] python-docx extraction failed: {exc}")
 
-    # Default fallback
+        raise ValueError("Could not extract legible text from Word document.")
+
+    # Plain text / Markdown fallback
     return sanitize_and_clean_text(file_bytes.decode("utf-8", errors="replace"))
