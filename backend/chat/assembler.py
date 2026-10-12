@@ -98,6 +98,7 @@ class ContextAssembler:
                     "chunk_id": chunk_id,
                     "document_id": doc_id,
                     "document_title": doc_title,
+                    "visibility": chunk.get("visibility", "tenant"),
                     "page": page_num,
                     "similarity": round(float(chunk.get("similarity", chunk.get("score", 0.0))), 4),
                     "text": clean_chunk_text,

@@ -966,16 +966,16 @@ export default function ChatPage() {
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 font-mono text-xs font-semibold">
-                    Citation [{selectedCitation.index}]
+                    Citation [{selectedCitation.index || 1}]
                   </span>
                   <h3 className="text-sm font-bold text-white truncate max-w-md">
-                    {selectedCitation.document_title}
+                    {selectedCitation.document_title || "Document"}
                   </h3>
                 </div>
                 <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono">
-                  <span>Match: {Math.round(selectedCitation.similarity * 100)}%</span>
+                  <span>Match: {Math.round((selectedCitation.similarity || 0) * 100)}%</span>
                   <span>•</span>
-                  <span>Scope: {selectedCitation.visibility.toUpperCase()}</span>
+                  <span>Scope: {String(selectedCitation.visibility || "tenant").toUpperCase()}</span>
                 </div>
               </div>
 
@@ -994,7 +994,7 @@ export default function ChatPage() {
                   Grounding Chunk Excerpt
                 </label>
                 <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 text-slate-200 whitespace-pre-wrap font-sans">
-                  {selectedCitation.text || "(Full chunk text not in payload)"}
+                  {selectedCitation.text || selectedCitation.text_snippet || "(Full chunk text not in payload)"}
                 </div>
               </div>
 
