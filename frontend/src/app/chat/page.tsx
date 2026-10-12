@@ -833,15 +833,15 @@ export default function ChatPage() {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
-                            {msg.citations.map((cite) => (
+                            {msg.citations.map((cite, cIdx) => (
                               <button
-                                key={cite.index}
+                                key={cite.chunk_id || cIdx}
                                 onClick={() => setSelectedCitation(cite)}
                                 className="px-2.5 py-1 rounded-lg border border-slate-700/80 bg-slate-950/80 hover:border-indigo-500/80 hover:bg-indigo-500/10 text-[11px] text-slate-300 hover:text-indigo-200 transition-all flex items-center gap-1.5 font-mono shadow-xs"
                                 title={`Inspect source text from ${cite.document_title}`}
                               >
                                 <span className="font-semibold text-indigo-400">
-                                  [{cite.index}]
+                                  [{cite.index || cIdx + 1}]
                                 </span>
                                 <span className="truncate max-w-[150px] font-sans">
                                   {cite.document_title}

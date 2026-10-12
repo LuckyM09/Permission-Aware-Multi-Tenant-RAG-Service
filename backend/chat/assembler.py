@@ -94,12 +94,14 @@ class ContextAssembler:
 
             permitted_citations.append(
                 {
+                    "index": len(permitted_citations) + 1,
                     "chunk_id": chunk_id,
                     "document_id": doc_id,
                     "document_title": doc_title,
                     "page": page_num,
-                    "similarity": chunk.get("similarity", chunk.get("score", 0.0)),
-                    "text_snippet": clean_chunk_text[:250],
+                    "similarity": round(float(chunk.get("similarity", chunk.get("score", 0.0))), 4),
+                    "text": clean_chunk_text,
+                    "text_snippet": clean_chunk_text[:300],
                     "images": images,
                 }
             )
