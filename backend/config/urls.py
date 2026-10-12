@@ -46,6 +46,11 @@ urlpatterns = [
         name="document_list_create",
     ),
     path(
+        "api/v1/documents/upload/",
+        DocumentListCreateView.as_view(),
+        name="document_upload",
+    ),
+    path(
         "api/v1/documents/<uuid:pk>/",
         DocumentDetailView.as_view(),
         name="document_detail",

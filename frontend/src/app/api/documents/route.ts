@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
 
-    const res = await fetch(`${DJANGO_API_URL}/api/v1/documents/upload/`, {
+    const res = await fetch(`${DJANGO_API_URL}/api/v1/documents/`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -54,8 +54,17 @@ export async function POST(req: NextRequest) {
       body: formData,
     });
 
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+    const contentType = res.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    }
+
+    const text = await res.text();
+    return NextResponse.json(
+      { error: text || `Backend returned status ${res.status}` },
+      { status: res.status }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Internal Server Error";
     return NextResponse.json({ error: message }, { status: 500 });

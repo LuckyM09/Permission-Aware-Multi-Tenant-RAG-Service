@@ -171,10 +171,15 @@ export default function DocumentsPage() {
         body: formData,
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: `Server returned non-JSON response (${res.status})` };
+      }
 
       if (!res.ok) {
-        setUploadError(data.error || data.detail || "Upload failed. Please check file format.");
+        setUploadError(data.error || data.detail || `Upload failed with status ${res.status}.`);
       } else {
         setUploadSuccess(
           data.deduplicated
