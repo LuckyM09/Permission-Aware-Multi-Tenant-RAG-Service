@@ -47,9 +47,10 @@ class ContextAssembler:
             sanitized = pattern.sub("[FILTERED_INJECTION_ATTEMPT]", sanitized)
         return sanitized
 
-    def assemble(self, chunks: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+    def assemble(self, chunks: list[Any]) -> tuple[str, list[dict[str, Any]]]:
         """
         Builds XML-delimited <context> from retrieved chunk candidates.
+        Supports both raw dictionaries and LangChain Document objects.
         Enforces token budgeting and tracks verified citations and figure attachments.
         Returns:
             (context_str, permitted_citations)
@@ -62,13 +63,28 @@ class ContextAssembler:
         cumulative_approx_tokens = 0
 
         for chunk in chunks:
-            chunk_id = chunk.get("chunk_id", "")
-            doc_title = chunk.get("document_title", "Untitled Document")
-            doc_id = chunk.get("document_id", "")
-            raw_text = chunk.get("text", "")
-            metadata = chunk.get("metadata", {}) or {}
-            page_num = metadata.get("page", 1)
-            images = metadata.get("images", [])
+            if hasattr(chunk, "page_content"):
+                # LangChain Document
+                raw_text = getattr(chunk, "page_content", "")
+                meta = getattr(chunk, "metadata", {}) or {}
+                chunk_id = meta.get("chunk_id", "")
+                doc_title = meta.get("document_title", "Untitled Document")
+                doc_id = meta.get("document_id", "")
+                visibility = meta.get("visibility", "tenant")
+                page_num = meta.get("page", 1)
+                images = meta.get("images", [])
+                similarity = meta.get("similarity", 0.0)
+            else:
+                # Raw dictionary
+                raw_text = chunk.get("text", "")
+                chunk_id = chunk.get("chunk_id", "")
+                doc_title = chunk.get("document_title", "Untitled Document")
+                doc_id = chunk.get("document_id", "")
+                visibility = chunk.get("visibility", "tenant")
+                metadata = chunk.get("metadata", {}) or {}
+                page_num = metadata.get("page", 1)
+                images = metadata.get("images", [])
+                similarity = chunk.get("similarity", chunk.get("score", 0.0))
 
             # Neutralize prompt injection attempts inside document text
             clean_chunk_text = self.sanitize_text(raw_text)
@@ -98,9 +114,9 @@ class ContextAssembler:
                     "chunk_id": chunk_id,
                     "document_id": doc_id,
                     "document_title": doc_title,
-                    "visibility": chunk.get("visibility", "tenant"),
+                    "visibility": visibility,
                     "page": page_num,
-                    "similarity": round(float(chunk.get("similarity", chunk.get("score", 0.0))), 4),
+                    "similarity": round(float(similarity), 4),
                     "text": clean_chunk_text,
                     "text_snippet": clean_chunk_text[:300],
                     "images": images,
