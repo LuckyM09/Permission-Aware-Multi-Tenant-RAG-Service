@@ -42,7 +42,7 @@ class DocumentModelTests(TestCase):
             status=Document.Status.READY,
         )
 
-        dummy_vector = [0.0] * 1536
+        dummy_vector = [0.0] * EmbeddingAdapter.DIMENSIONS
         dummy_vector[0] = 1.0
 
         chunk1 = Chunk.objects.create(
@@ -108,13 +108,14 @@ class IngestionEngineTests(TestCase):
         self.assertIn("Paragraph one", chunks[0].text)
 
     def test_embedding_adapter_dimensions_and_normalization(self):
-        """Test embedding adapter returns normalized 1536-dimensional unit vectors."""
+        """Test embedding adapter returns normalized 2048-dimensional unit vectors."""
         adapter = EmbeddingAdapter()
         vector = adapter.get_embedding(
             "Enterprise access control is enforced by design."
         )
 
-        self.assertEqual(len(vector), 1536)
+        self.assertEqual(len(vector), EmbeddingAdapter.DIMENSIONS)
+        self.assertEqual(len(vector), 2048)
         # Vector must be normalized to unit length (L2 norm approx 1.0)
         norm = math.sqrt(sum(x * x for x in vector))
         self.assertAlmostEqual(norm, 1.0, places=4)

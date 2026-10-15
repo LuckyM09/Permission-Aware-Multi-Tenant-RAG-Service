@@ -11,12 +11,25 @@ from tenants.models import Group, Tenant
 class CompatibleHnswIndex(PgVectorHnswIndex):
     """
     Subclasses HnswIndex to safely bypass index generation on non-PostgreSQL
-    backends (e.g. SQLite test runners). On PostgreSQL, creates the full HNSW index.
+    backends (e.g. SQLite test runners). On PostgreSQL, creates the full HNSW index,
+    using halfvec indexing if dimensions exceed PostgreSQL's 2,000 limit.
     """
 
     def create_sql(self, model, schema_editor, using="", **kwargs):
         if schema_editor.connection.vendor != "postgresql":
             return ""
+        try:
+            field = model._meta.get_field(self.fields[0])
+            dim = getattr(field, "dimensions", None)
+            if dim and dim > 2000:
+                table = model._meta.db_table
+                col = self.fields[0]
+                name = self.name
+                m = self.m or 16
+                ef = self.ef_construction or 64
+                return f"CREATE INDEX {name} ON {table} USING hnsw (({col}::halfvec({dim})) halfvec_cosine_ops) WITH (m = {m}, ef_construction = {ef})"
+        except Exception:
+            pass
         return super().create_sql(model, schema_editor, using=using, **kwargs)
 
     def remove_sql(self, model, schema_editor, **kwargs):
@@ -188,8 +201,8 @@ class Chunk(models.Model):
     )
     text = models.TextField(help_text="Extracted chunk text passage")
     embedding = VectorField(
-        dimensions=1536,
-        help_text="1,536-dimensional dense vector embedding",
+        dimensions=2048,
+        help_text="2,048-dimensional dense vector embedding (Nemotron-3-Embed)",
     )
     metadata = models.JSONField(
         default=dict,

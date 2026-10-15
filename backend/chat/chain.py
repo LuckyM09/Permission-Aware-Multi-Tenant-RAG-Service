@@ -107,13 +107,14 @@ class MockLangChainChatModel(BaseChatModel):
         **kwargs: Any,
     ) -> Iterator[Any]:
         from langchain_core.messages import AIMessageChunk
+        from langchain_core.outputs import ChatGenerationChunk
 
         res = self._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
         full_text = res.generations[0].text
         words = full_text.split(" ")
         for i, word in enumerate(words):
             token = word + (" " if i < len(words) - 1 else "")
-            yield AIMessageChunk(content=token)
+            yield ChatGenerationChunk(message=AIMessageChunk(content=token))
 
     @property
     def _llm_type(self) -> str:
