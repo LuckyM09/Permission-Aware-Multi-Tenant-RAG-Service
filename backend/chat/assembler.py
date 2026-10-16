@@ -102,8 +102,16 @@ class ContextAssembler:
             ]
 
             if images:
-                fig_names = [img.get("filename", "figure.png") for img in images]
-                chunk_entry.append(f"Attached Figures: {', '.join(fig_names)}")
+                fig_descriptions = []
+                for img in images:
+                    fn = img.get("filename", "figure.png")
+                    cap = img.get("caption")
+                    if cap and cap not in clean_chunk_text:
+                        cap_short = cap[:80] + "..." if len(cap) > 80 else cap
+                        fig_descriptions.append(f"{fn} ({cap_short})")
+                    else:
+                        fig_descriptions.append(fn)
+                chunk_entry.append(f"Attached Figures: {', '.join(fig_descriptions)}")
 
             chunk_entry.append("---")
             context_parts.append("\n".join(chunk_entry))

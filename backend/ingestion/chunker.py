@@ -20,13 +20,23 @@ class LangChainRecursiveChunker:
     precise character offsets, approximate token counts, and chunk positioning.
     """
 
-    def __init__(self, chunk_size: int = 600, chunk_overlap: int = 100):
+    def __init__(self, chunk_size: int = 1200, chunk_overlap: int = 200):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", ". ", " ", ""],
+            separators=[
+                "\n[Page ",
+                "\n## ",
+                "\n[Figure:",
+                "\n| ",
+                "\n\n",
+                "\n",
+                ". ",
+                " ",
+                "",
+            ],
             keep_separator=True,
         )
 

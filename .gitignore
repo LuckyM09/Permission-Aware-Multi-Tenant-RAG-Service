@@ -58,3 +58,9 @@ htmlcov/
 
 # MinIO / Local storage volumes
 infra/data/
+
+# Repomix & bundled exports
+repomix-output.*
+RAG_Project/
+.repomixignore
+repomix.config.json

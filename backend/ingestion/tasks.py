@@ -10,9 +10,18 @@ from documents.models import Chunk, Document
 
 from .chunker import RecursiveTextChunker
 from .embedder import EmbeddingAdapter
-from .parsers import extract_images_from_pdf, extract_text_from_file
+from .parsers import (
+    describe_image_with_vlm,
+    extract_images_from_pdf,
+    extract_text_from_file,
+)
 
 logger = logging.getLogger(__name__)
+
+VISUAL_KEYWORDS = re.compile(
+    r"\b(figure|fig\.|diagram|chart|table|graph|plot|architecture|flowchart|workflow|schematic|heatmap)\b",
+    re.IGNORECASE,
+)
 
 
 def find_chunk_page(full_text: str, char_start: int) -> int:
@@ -61,6 +70,12 @@ def ingest_document_task(self, document_id: str):
                         rel_path, ContentFile(img["data"])
                     )
                     image_url = default_storage.url(saved_path)
+
+                    # Generate semantic caption via Vision LLM
+                    caption = describe_image_with_vlm(
+                        img["data"], img["filename"], img["page"]
+                    )
+
                     stored_images.append(
                         {
                             "url": image_url,
@@ -69,6 +84,7 @@ def ingest_document_task(self, document_id: str):
                             "width": img["width"],
                             "height": img["height"],
                             "format": img["format"],
+                            "caption": caption,
                         }
                     )
                 if stored_images:
@@ -85,8 +101,27 @@ def ingest_document_task(self, document_id: str):
         if not text or not text.strip():
             raise ValueError("Extracted text is empty or unreadable.")
 
-        # 4. Chunk text
-        chunker = RecursiveTextChunker(chunk_size=600, chunk_overlap=100)
+        # Inject semantic figure captions into document text under corresponding [Page X]
+        if stored_images:
+            figures_by_page: dict[int, list[dict]] = {}
+            for img in stored_images:
+                figures_by_page.setdefault(img["page"], []).append(img)
+
+            for p_num, imgs in figures_by_page.items():
+                fig_blocks = "\n".join(
+                    f"[Figure: {img['filename']} (Page {img['page']}) — {img['caption']}]"
+                    for img in imgs
+                )
+                page_marker = f"[Page {p_num}]"
+                if page_marker in text:
+                    text = text.replace(
+                        page_marker, f"{page_marker}\n\n{fig_blocks}\n", 1
+                    )
+                else:
+                    text += f"\n\n{page_marker}\n\n{fig_blocks}\n"
+
+        # 4. Chunk text with structural preservation
+        chunker = RecursiveTextChunker(chunk_size=1200, chunk_overlap=200)
         text_chunks = chunker.split_text(text)
         if not text_chunks:
             raise ValueError("Text chunking produced zero segments.")
@@ -108,10 +143,18 @@ def ingest_document_task(self, document_id: str):
             chunks_to_create = []
             for idx, tc in enumerate(text_chunks):
                 chunk_page = find_chunk_page(text, tc.char_start)
-                # Find images belonging to this page
-                chunk_images = [
-                    img for img in stored_images if img["page"] == chunk_page
-                ]
+
+                # Precision Chunk-to-Image Association
+                page_images = [img for img in stored_images if img["page"] == chunk_page]
+                chunk_images = []
+                for img in page_images:
+                    # Primary match: filename explicitly inside chunk text
+                    if img["filename"] in tc.text:
+                        chunk_images.append(img)
+                    # Secondary match: same page AND chunk contains visual reference keywords
+                    elif VISUAL_KEYWORDS.search(tc.text):
+                        chunk_images.append(img)
+
                 chunks_to_create.append(
                     Chunk(
                         tenant=document.tenant,
