@@ -81,7 +81,7 @@ export default function HomePage() {
               VaultRAG
             </h1>
             <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto">
-              Permission-Aware Multi-Tenant RAG Service powered by NVIDIA Nemotron-3-Ultra-550B,
+              Permission-Aware Multi-Tenant RAG Service powered by OpenAI GPT-OSS-20B,
               SQL-Level Vector Pre-Filtering, and Anti-Leak Citation Shielding.
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function HomePage() {
               <div className="flex items-center gap-2">
                 <span className="text-xl">💬</span>
                 <h3 className="text-base font-semibold text-slate-100">
-                  Anti-Leak Chat Engine (NVIDIA Nemotron-3-Ultra-550B)
+                  Anti-Leak Chat Engine (OpenAI GPT-OSS-20B)
                 </h3>
               </div>
               <p className="text-xs text-slate-400 max-w-lg">

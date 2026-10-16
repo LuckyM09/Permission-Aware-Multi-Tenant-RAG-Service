@@ -1,6 +1,7 @@
 import logging
 import re
-from typing import Any, Iterator, Optional
+from collections.abc import Iterator
+from typing import Any
 
 from decouple import config
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -13,6 +14,7 @@ from langchain_core.prompts import (
 )
 from langchain_core.runnables import Runnable
 from langchain_openai import ChatOpenAI
+from pydantic import Field
 
 from .assembler import AntiLeakShield, ContextAssembler
 
@@ -35,7 +37,7 @@ class AntiLeakOutputParser(BaseOutputParser[str]):
     against the caller's permitted chunk IDs.
     """
 
-    permitted_citations: list[dict[str, Any]] = []
+    permitted_citations: list[dict[str, Any]] = Field(default_factory=list)
 
     def parse(self, text: str) -> str:
         clean_text, _ = AntiLeakShield.verify_citations(text, self.permitted_citations)
@@ -51,7 +53,7 @@ class MockLangChainChatModel(BaseChatModel):
     def _generate(
         self,
         messages: list[BaseMessage],
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         run_manager: Any = None,
         **kwargs: Any,
     ) -> Any:
@@ -102,7 +104,7 @@ class MockLangChainChatModel(BaseChatModel):
     def _stream(
         self,
         messages: list[BaseMessage],
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         run_manager: Any = None,
         **kwargs: Any,
     ) -> Iterator[Any]:
@@ -122,9 +124,9 @@ class MockLangChainChatModel(BaseChatModel):
 
 
 def get_langchain_chat_model(
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
-    model: Optional[str] = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    model: str | None = None,
     streaming: bool = True,
     temperature: float = 0.1,
     max_tokens: int = 1024,
@@ -148,7 +150,7 @@ def get_langchain_chat_model(
         resolved_base_url = "https://integrate.api.nvidia.com/v1"
 
     resolved_model = (
-        model or config("LLM_MODEL", default="nvidia/nemotron-3-ultra-550b-a55b")
+        model or config("LLM_MODEL", default="openai/gpt-oss-20b")
     )
 
     is_valid_key = bool(
@@ -168,11 +170,12 @@ def get_langchain_chat_model(
         streaming=streaming,
         temperature=temperature,
         max_tokens=max_tokens,
+        request_timeout=20.0,
     )
 
 
 def create_vaultrag_lcel_chain(
-    chat_model: Optional[BaseChatModel] = None,
+    chat_model: BaseChatModel | None = None,
 ) -> Runnable:
     """
     Assembles a modern LangChain Expression Language (LCEL) chain:
