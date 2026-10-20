@@ -6,6 +6,14 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# Suppress non-fatal MuPDF C-library syntax/font warnings
+try:
+    import pymupdf
+
+    pymupdf.TOOLS.mupdf_display_errors(False)
+except Exception:
+    pass
+
 
 def detect_file_type(file_bytes: bytes, filename: str) -> tuple[str, bool]:
     """
@@ -154,7 +162,7 @@ def describe_image_with_vlm(
                 }
             ],
             max_tokens=150,
-            timeout=15.0,
+            timeout=5.0,
         )
         content = res.choices[0].message.content
         if content and content.strip():

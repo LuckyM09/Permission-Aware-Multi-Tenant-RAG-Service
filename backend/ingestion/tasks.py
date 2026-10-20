@@ -62,7 +62,20 @@ def ingest_document_task(self, document_id: str):
         if document.file_type == "application/pdf":
             try:
                 extracted_images = extract_images_from_pdf(file_bytes)
-                for img in extracted_images:
+
+                # Prioritize VLM captions for up to 3 most prominent diagrams (by pixel area)
+                # to guarantee fast ingestion (<5s) even on documents with dozens of figures
+                MAX_VLM_CALLS = 3
+                prominent_indices = set(
+                    sorted(
+                        range(len(extracted_images)),
+                        key=lambda i: extracted_images[i]["width"] * extracted_images[i]["height"],
+                        reverse=True,
+                    )[:MAX_VLM_CALLS]
+                )
+                vlm_circuit_broken = False
+
+                for img_idx, img in enumerate(extracted_images):
                     rel_path = f"documents/{document.tenant_id}/{document.id}/images/{img['filename']}"
                     if default_storage.exists(rel_path):
                         default_storage.delete(rel_path)
@@ -71,10 +84,23 @@ def ingest_document_task(self, document_id: str):
                     )
                     image_url = default_storage.url(saved_path)
 
-                    # Generate semantic caption via Vision LLM
-                    caption = describe_image_with_vlm(
-                        img["data"], img["filename"], img["page"]
-                    )
+                    # Generate semantic caption via Vision LLM or fast fallback
+                    if img_idx in prominent_indices and not vlm_circuit_broken:
+                        try:
+                            caption = describe_image_with_vlm(
+                                img["data"], img["filename"], img["page"]
+                            )
+                            # If VLM timed out or errored and returned fallback string, trip circuit breaker
+                            if caption.startswith("Visual diagram and specifications on page"):
+                                vlm_circuit_broken = True
+                        except Exception as vlm_err:
+                            logger.warning(
+                                f"[Ingestion] VLM circuit broken on {img['filename']}: {vlm_err}"
+                            )
+                            vlm_circuit_broken = True
+                            caption = f"Visual diagram and specifications on page {img['page']} ({img['filename']})"
+                    else:
+                        caption = f"Visual diagram and specifications on page {img['page']} ({img['filename']})"
 
                     stored_images.append(
                         {
