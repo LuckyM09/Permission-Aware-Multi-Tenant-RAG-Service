@@ -515,7 +515,7 @@ export default function ChatPage() {
             {/* Model Badge */}
             <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[11px] font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>OpenAI GPT-OSS-20B</span>
+              <span>Llama 3.2 11B Vision</span>
             </div>
 
             {/* Shield Badge */}
@@ -756,7 +756,7 @@ export default function ChatPage() {
                   <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
                     Powered by{" "}
                     <span className="text-emerald-300 font-mono font-medium">
-                      OpenAI GPT-OSS-20B
+                      Llama 3.2 11B (Vision)
                     </span>
                     . Context is dynamically fenced with strict XML delimiters and audited by our{" "}
                     <span className="text-indigo-300 font-medium">Anti-Leak Shield</span>.
@@ -795,7 +795,7 @@ export default function ChatPage() {
                   >
                     {/* Role Header */}
                     <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1 font-mono">
-                      <span>{isUser ? "You" : "GPT-OSS-20B"}</span>
+                      <span>{isUser ? "You" : "Llama 3.2 11B"}</span>
                       {msg.created_at && (
                         <span>• {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       )}

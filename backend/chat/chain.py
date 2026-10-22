@@ -150,7 +150,7 @@ def get_langchain_chat_model(
         resolved_base_url = "https://integrate.api.nvidia.com/v1"
 
     resolved_model = (
-        model or config("LLM_MODEL", default="openai/gpt-oss-20b")
+        model or config("LLM_MODEL", default="meta/llama-3.2-11b-vision-instruct")
     )
 
     is_valid_key = bool(
@@ -170,7 +170,7 @@ def get_langchain_chat_model(
         streaming=streaming,
         temperature=temperature,
         max_tokens=max_tokens,
-        request_timeout=20.0,
+        request_timeout=45.0,
     )
 
 
