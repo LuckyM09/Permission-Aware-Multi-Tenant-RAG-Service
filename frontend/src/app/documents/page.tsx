@@ -100,13 +100,8 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     fetchSession();
-  }, [fetchSession]);
-
-  useEffect(() => {
-    if (authData?.authenticated) {
-      fetchDocuments();
-    }
-  }, [authData?.authenticated, fetchDocuments]);
+    fetchDocuments();
+  }, [fetchSession, fetchDocuments]);
 
   // Polling hook: If any doc is "processing" or "uploaded", poll every 2.5s
   useEffect(() => {

@@ -173,13 +173,8 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetchSession();
-  }, [fetchSession]);
-
-  useEffect(() => {
-    if (authData?.authenticated) {
-      fetchConversations();
-    }
-  }, [authData?.authenticated, fetchConversations]);
+    fetchConversations();
+  }, [fetchSession, fetchConversations]);
 
   useEffect(() => {
     if (activeConvId) {
