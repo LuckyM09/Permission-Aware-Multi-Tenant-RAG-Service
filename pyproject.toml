@@ -18,6 +18,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "backend/config/settings/*" = ["F403", "F401", "F405"] # Wildcard imports standard in split settings
+"config/settings/*" = ["F403", "F401", "F405"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["config", "accounts", "tenants", "documents", "ingestion", "permissions", "retrieval", "chat", "audit"]

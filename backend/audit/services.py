@@ -3,6 +3,7 @@ from typing import Any, Optional
 from uuid import UUID
 
 from accounts.context import UserContext
+
 from .models import AuditAction, AuditLog
 
 logger = logging.getLogger(__name__)

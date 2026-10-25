@@ -1,4 +1,5 @@
 from django.urls import path
+
 from .views import AuditLogListView
 
 app_name = "audit"

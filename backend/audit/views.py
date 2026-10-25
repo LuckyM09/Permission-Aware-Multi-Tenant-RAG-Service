@@ -1,9 +1,10 @@
 from rest_framework import permissions, status
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.pagination import LimitOffsetPagination
 
 from accounts.context import get_user_context
+
 from .models import AuditLog
 from .serializers import AuditLogSerializer
 

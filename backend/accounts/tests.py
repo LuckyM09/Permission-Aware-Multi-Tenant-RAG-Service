@@ -190,6 +190,7 @@ class TenantContextMiddlewareTests(TestCase):
     def test_middleware_sets_postgres_session_variable(self):
         from django.db import connection
         from django.test.client import RequestFactory
+
         from accounts.middleware import TenantContextMiddleware
         from accounts.tokens import create_token_for_user
 

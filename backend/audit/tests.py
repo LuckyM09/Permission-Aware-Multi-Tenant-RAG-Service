@@ -1,12 +1,13 @@
 import uuid
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from accounts.models import User
 from accounts.tokens import create_token_for_user
 from tenants.models import Membership, Role, Tenant
+
 from .models import AuditAction, AuditLog
-from .services import AuditService
 
 
 class AuditLogModelTests(TestCase):

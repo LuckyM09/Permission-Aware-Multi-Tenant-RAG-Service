@@ -74,7 +74,7 @@ jobs:
         run: |
           cd backend
           python manage.py migrate
-          python manage.py test accounts tenants documents retrieval
+          python manage.py test accounts tenants documents retrieval chat audit
 
   # ---------------------------------------------------------------------------
   # 2. Frontend Linting & Type Check
