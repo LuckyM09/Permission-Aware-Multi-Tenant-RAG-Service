@@ -163,6 +163,10 @@ def ingest_document_task(self, document_id: str):
 
         # 6. Transactionally insert chunks & update status
         with transaction.atomic():
+            from accounts.middleware import set_tenant_db_context
+
+            set_tenant_db_context(document.tenant_id)
+
             # Purge existing chunks for idempotency
             Chunk.objects.filter(document=document).delete()
 

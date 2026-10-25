@@ -114,14 +114,38 @@ class ChatService:
         # 3. Assemble fenced context & verify citations
         context_str, permitted_citations = self.assembler.assemble(retrieved_docs)
 
-        # 4. Generate answer via LangChain Expression Language (LCEL) chain
-        chain = create_vaultrag_lcel_chain(chat_model=self.chat_model)
-        raw_answer = chain.invoke({"context": context_str, "question": query})
+        # Immediate abstention if no authorized documents retrieved
+        if not retrieved_docs or not permitted_citations:
+            clean_answer = (
+                "I do not have access to any authorized documents containing information to answer this question."
+            )
+            final_citations = []
+        else:
+            # 4. Generate answer via LangChain Expression Language (LCEL) chain
+            chain = create_vaultrag_lcel_chain(chat_model=self.chat_model)
+            try:
+                raw_answer = chain.invoke({"context": context_str, "question": query})
+            except Exception as exc:
+                logger.warning(
+                    f"[ChatService] Primary chain invocation failed: {exc}. Falling back to mock generator."
+                )
+                from langchain_core.output_parsers import StrOutputParser
 
-        # 5. Anti-leak shield backstop: verify citations
-        clean_answer, final_citations = AntiLeakShield.verify_citations(
-            raw_answer, permitted_citations
-        )
+                from .chain import create_vaultrag_prompt
+
+                fallback_chain = (
+                    create_vaultrag_prompt()
+                    | MockLangChainChatModel()
+                    | StrOutputParser()
+                )
+                raw_answer = fallback_chain.invoke(
+                    {"context": context_str, "question": query}
+                )
+
+            # 5. Anti-leak shield backstop: verify citations
+            clean_answer, final_citations = AntiLeakShield.verify_citations(
+                raw_answer, permitted_citations
+            )
 
         # 6. Save assistant response message
         assistant_msg = Message.objects.create(
@@ -205,37 +229,50 @@ class ChatService:
         }
         yield f"event: context\ndata: {json.dumps(context_payload)}\n\n"
 
-        # Stream via LangChain Expression Language (LCEL) runnable
-        chain = create_vaultrag_lcel_chain(chat_model=self.chat_model)
-        full_content_parts: list[str] = []
-        try:
-            for token in chain.stream({"context": context_str, "question": query}):
-                full_content_parts.append(token)
-                yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
-        except Exception as exc:
-            logger.warning(
-                f"[ChatService] Primary chain stream failed: {exc}. Falling back to mock generator."
+        # Immediate abstention if no authorized documents retrieved
+        if not retrieved_docs or not permitted_citations:
+            clean_answer = (
+                "I do not have access to any authorized documents containing information to answer this question."
             )
-            if not full_content_parts:
-                from langchain_core.output_parsers import StrOutputParser
-
-                from .chain import create_vaultrag_prompt
-
-                fallback_chain = (
-                    create_vaultrag_prompt()
-                    | MockLangChainChatModel()
-                    | StrOutputParser()
-                )
-                for token in fallback_chain.stream(
-                    {"context": context_str, "question": query}
-                ):
+            yield f"event: delta\ndata: {json.dumps({'content': clean_answer})}\n\n"
+            final_citations = []
+        else:
+            # Stream via LangChain Expression Language (LCEL) runnable
+            chain = create_vaultrag_lcel_chain(chat_model=self.chat_model)
+            full_content_parts: list[str] = []
+            try:
+                for token in chain.stream({"context": context_str, "question": query}):
                     full_content_parts.append(token)
                     yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
+            except Exception as exc:
+                logger.warning(
+                    f"[ChatService] Primary chain stream failed: {exc}. Falling back to mock generator."
+                )
+                if not full_content_parts:
+                    from langchain_core.output_parsers import StrOutputParser
 
-        full_answer = "".join(full_content_parts)
-        clean_answer, final_citations = AntiLeakShield.verify_citations(
-            full_answer, permitted_citations
-        )
+                    from .chain import create_vaultrag_prompt
+
+                    fallback_chain = (
+                        create_vaultrag_prompt()
+                        | MockLangChainChatModel()
+                        | StrOutputParser()
+                    )
+                    for token in fallback_chain.stream(
+                        {"context": context_str, "question": query}
+                    ):
+                        full_content_parts.append(token)
+                        yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
+
+            full_answer = "".join(full_content_parts)
+            clean_answer, final_citations = AntiLeakShield.verify_citations(
+                full_answer, permitted_citations
+            )
+
+        # Re-establish PostgreSQL tenant RLS session context inside generator
+        from accounts.middleware import set_tenant_db_context
+
+        set_tenant_db_context(user_ctx.tenant_id)
 
         # Persist assistant turn with verified citations
         assistant_msg = Message.objects.create(
@@ -267,6 +304,7 @@ class ChatService:
         done_payload = {
             "conversation_id": str(conversation.id),
             "message_id": str(assistant_msg.id),
+            "content": clean_answer,
             "citations": final_citations,
         }
         yield f"event: done\ndata: {json.dumps(done_payload)}\n\n"

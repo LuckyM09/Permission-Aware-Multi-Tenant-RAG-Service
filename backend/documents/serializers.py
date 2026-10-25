@@ -65,6 +65,7 @@ class DocumentUploadSerializer(serializers.Serializer):
     )
 
     MAX_FILE_SIZE = 25 * 1024 * 1024  # 25 MB
+    MAX_PDF_PAGES = 150
 
     def validate_file(self, value):
         if value.size > self.MAX_FILE_SIZE:
@@ -81,6 +82,25 @@ class DocumentUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f"Unsupported or malformed file type detected: {detected_type}. Only PDF, DOCX, TXT, and Markdown are allowed."
             )
+
+        # Upload hardening: inspect PDF page count to prevent resource exhaustion / decompression bombs
+        if detected_type == "application/pdf":
+            try:
+                import pymupdf
+
+                full_bytes = value.read()
+                value.seek(0)
+                doc = pymupdf.open(stream=full_bytes, filetype="pdf")
+                page_count = len(doc)
+                doc.close()
+                if page_count > self.MAX_PDF_PAGES:
+                    raise serializers.ValidationError(
+                        f"PDF page count exceeds maximum allowable limit ({page_count} pages > {self.MAX_PDF_PAGES} max)."
+                    )
+            except serializers.ValidationError:
+                raise
+            except Exception:
+                pass
 
         return value
 

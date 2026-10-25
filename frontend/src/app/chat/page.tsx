@@ -363,6 +363,7 @@ export default function ChatPage() {
                         updated[lastIdx] = {
                           ...updated[lastIdx],
                           id: parsed.message_id,
+                          content: parsed.content || updated[lastIdx].content,
                           citations: parsed.citations,
                         };
                       }

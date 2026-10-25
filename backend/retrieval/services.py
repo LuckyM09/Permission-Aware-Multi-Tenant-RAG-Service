@@ -59,8 +59,8 @@ class RetrievalService:
         if not base_qs.exists():
             return []
 
-        # Retrieve a broader candidate pool for fusion and reranking
-        candidate_limit = max(top_k * 3, 15)
+        # Retrieve a broader candidate pool for fusion and reranking (retrieve wide, rerank narrow)
+        candidate_limit = max(top_k * 6, 40)
 
         # 2. Execute retrieval based on selected mode
         if mode == "dense":
