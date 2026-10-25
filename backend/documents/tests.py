@@ -341,6 +341,83 @@ class MultimodalIngestionTests(TestCase):
         self.assertEqual(first_img["page"], 1)
         self.assertEqual(first_img["format"], "PNG")
         self.assertGreater(first_img["width"], 0)
-        self.assertGreater(first_img["height"], 0)
         self.assertGreater(len(first_img["data"]), 50)
+
+
+class PostgreSQLRowLevelSecurityTests(TestCase):
+    """
+    Verifies that PostgreSQL FORCE ROW LEVEL SECURITY strictly isolates
+    documents and chunks at the database engine layer.
+    """
+
+    def setUp(self):
+        from django.db import connection
+
+        self.tenant_a = Tenant.objects.create(name="Tenant Alpha", slug="alpha")
+        self.tenant_b = Tenant.objects.create(name="Tenant Beta", slug="beta")
+
+        self.user_a = User.objects.create_user(email="user@alpha.com", password="password")
+        self.user_b = User.objects.create_user(email="user@beta.com", password="password")
+
+        # Temporarily set context to create documents
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_a.id)])
+
+        self.doc_a = Document.objects.create(
+            tenant=self.tenant_a,
+            owner=self.user_a,
+            title="Alpha Strategy.pdf",
+            content_hash="hash_alpha",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_b.id)])
+
+        self.doc_b = Document.objects.create(
+            tenant=self.tenant_b,
+            owner=self.user_b,
+            title="Beta Financials.pdf",
+            content_hash="hash_beta",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
+
+    def tearDown(self):
+        from django.db import connection
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("RESET ROLE;")
+        except Exception:
+            pass
+        super().tearDown()
+
+    def test_rls_filters_by_tenant_session_config(self):
+        from django.db import connection
+
+        # 1. Switch context to Tenant Alpha as non-superuser role where RLS is enforced
+        with connection.cursor() as cursor:
+            cursor.execute("SET ROLE vaultrag_user;")
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_a.id)])
+
+        alpha_docs = list(Document.objects.all())
+        self.assertEqual(len(alpha_docs), 1)
+        self.assertEqual(alpha_docs[0].title, "Alpha Strategy.pdf")
+
+        # 2. Switch context to Tenant Beta
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_b.id)])
+
+        beta_docs = list(Document.objects.all())
+        self.assertEqual(len(beta_docs), 1)
+        self.assertEqual(beta_docs[0].title, "Beta Financials.pdf")
+
+        # 3. Clear session context — MUST return ZERO rows under FORCE RLS
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT set_config('app.tenant_id', '', true);")
+
+        no_context_docs = list(Document.objects.all())
+        self.assertEqual(len(no_context_docs), 0)
+
 

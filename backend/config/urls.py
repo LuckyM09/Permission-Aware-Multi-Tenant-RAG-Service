@@ -59,6 +59,8 @@ urlpatterns = [
     path("api/v1/retrieval/", include("retrieval.urls")),
     # Anti-Leak RAG Chat & Generation
     path("api/v1/chat/", include("chat.urls")),
+    # Compliance & Audit Logging
+    path("api/v1/audit/", include("audit.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

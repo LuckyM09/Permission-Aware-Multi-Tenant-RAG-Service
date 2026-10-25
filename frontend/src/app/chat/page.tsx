@@ -503,6 +503,12 @@ export default function ChatPage() {
               <span className="px-2.5 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
                 💬 Chat Engine
               </span>
+              <Link
+                href="/audit"
+                className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
+              >
+                🛡️ Audit Ledger
+              </Link>
             </nav>
           </div>
 

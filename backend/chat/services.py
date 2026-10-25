@@ -1,11 +1,13 @@
 import json
 import logging
+import time
 from collections.abc import Iterator
 from typing import Any, Optional
 
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from accounts.context import UserContext
+from audit.services import AuditService
 from retrieval.retriever import VaultRAGRetriever
 from retrieval.services import RetrievalService
 
@@ -86,6 +88,7 @@ class ChatService:
         Retrieves permitted context via VaultRAGRetriever, generates answer via LCEL chain,
         validates citations with Anti-Leak Shield, and persists dialogue turn.
         """
+        start_time = time.perf_counter()
         conversation = self.get_or_create_conversation(
             user_ctx, conversation_id, initial_title=query[:50]
         )
@@ -128,6 +131,24 @@ class ChatService:
             citations=final_citations,
         )
 
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        chunk_ids = [
+            str(doc.metadata.get("chunk_id"))
+            for doc in retrieved_docs
+            if doc.metadata.get("chunk_id")
+        ]
+        AuditService.log_query(
+            user_ctx=user_ctx,
+            query=query,
+            retrieved_chunk_ids=chunk_ids,
+            latency_ms=latency_ms,
+            metadata={
+                "conversation_id": str(conversation.id),
+                "message_id": str(assistant_msg.id),
+                "citation_count": len(final_citations),
+            },
+        )
+
         return {
             "conversation_id": str(conversation.id),
             "user_message_id": str(user_msg.id),
@@ -151,6 +172,7 @@ class ChatService:
         SSE Streaming generator for real-time token delivery to the client via LangChain LCEL.
         Yields Server-Sent Event formatted chunks.
         """
+        start_time = time.perf_counter()
         conversation = self.get_or_create_conversation(
             user_ctx, conversation_id, initial_title=query[:50]
         )
@@ -221,6 +243,25 @@ class ChatService:
             role=Message.Role.ASSISTANT,
             content=clean_answer,
             citations=final_citations,
+        )
+
+        latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
+        chunk_ids = [
+            str(doc.metadata.get("chunk_id"))
+            for doc in retrieved_docs
+            if doc.metadata.get("chunk_id")
+        ]
+        AuditService.log_query(
+            user_ctx=user_ctx,
+            query=query,
+            retrieved_chunk_ids=chunk_ids,
+            latency_ms=latency_ms,
+            metadata={
+                "conversation_id": str(conversation.id),
+                "message_id": str(assistant_msg.id),
+                "citation_count": len(final_citations),
+                "mode": "streaming",
+            },
         )
 
         done_payload = {

@@ -115,3 +115,45 @@ class VaultRAGTokenObtainPairView(TokenObtainPairView):
     """View that issues tenant-scoped SimpleJWT tokens."""
 
     serializer_class = VaultRAGTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200 and "tenant" in response.data:
+            from audit.models import AuditAction
+            from audit.services import AuditService
+
+            tenant_info = response.data["tenant"]
+            user_info = response.data.get("user", {})
+            ip = request.META.get("REMOTE_ADDR")
+            AuditService.log_event(
+                tenant_id=tenant_info["id"],
+                action=AuditAction.LOGIN,
+                user_id=user_info.get("id"),
+                user_email=user_info.get("email", ""),
+                query_text_sanitized=f"User {user_info.get('email')} authenticated into {tenant_info.get('name')}",
+                ip_address=ip,
+                user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            )
+        return response
+
+
+def create_token_for_user(user, tenant_id, role="member", groups=None) -> str:
+    """Helper to generate a signed access token with tenant context claims."""
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    refresh = RefreshToken.for_user(user)
+    refresh["user_id"] = str(user.id)
+    refresh["email"] = user.email
+    refresh["tenant_id"] = str(tenant_id)
+    refresh["role"] = role
+    refresh["groups"] = [str(g) for g in (groups or [])]
+
+    access = refresh.access_token
+    access["user_id"] = str(user.id)
+    access["email"] = user.email
+    access["tenant_id"] = str(tenant_id)
+    access["role"] = role
+    access["groups"] = [str(g) for g in (groups or [])]
+
+    return str(access)
+

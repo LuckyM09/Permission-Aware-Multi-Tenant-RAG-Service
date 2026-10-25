@@ -12,12 +12,12 @@
   - Visibility rules (`private`, `group`, `tenant`), `document_permissions`, single source of truth authorization service, 100% passing test matrix.
 - [x] **Phase 4: Filtered Retrieval & Chat Engine (M4)**
   - `VaultRAGRetriever` with SQL vector pre-filtering, LangChain LCEL chain with Llama 3.2 11B Vision, SSE streaming, citation side panel, Anti-Leak citation shield.
-- [ ] **Phase 5: PostgreSQL RLS, Append-Only Audit Logging & Hardening (M5)** *(CURRENT)*
+- [x] **Phase 5: PostgreSQL RLS, Append-Only Audit Logging & Hardening (M5)** *(COMPLETED)*
   - PostgreSQL `FORCE ROW LEVEL SECURITY` on documents and chunks using `app.tenant_id`.
   - Transaction-scoped connection middleware executing `set_config('app.tenant_id', ...)`.
-  - Append-only `audit_auditlog` table with revoked `UPDATE`/`DELETE` for `vaultrag_app`.
+  - Append-only `audit_auditlog` table with database trigger blocking `UPDATE`/`DELETE`.
   - Audit logging API endpoints and frontend Audit Log viewer.
-- [ ] **Phase 6: Admin UX & Access Explorer (M6)**
+- [ ] **Phase 6: Admin UX & Access Explorer (M6)** *(NEXT)*
   - Tenant admin screens for user & group management.
   - Interactive Access Explorer: inspect exactly which documents any user can access and why.
 - [ ] **Phase 7: Adversarial Testing Suite & RAGAS Evaluation (M7)**

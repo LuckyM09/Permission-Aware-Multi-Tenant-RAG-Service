@@ -184,3 +184,28 @@ class UserContextDataclassTests(TestCase):
         )
         self.assertFalse(viewer_ctx.is_admin())
         self.assertFalse(viewer_ctx.is_member_or_admin())
+
+
+class TenantContextMiddlewareTests(TestCase):
+    def test_middleware_sets_postgres_session_variable(self):
+        from django.db import connection
+        from django.test.client import RequestFactory
+        from accounts.middleware import TenantContextMiddleware
+        from accounts.tokens import create_token_for_user
+
+        tenant = Tenant.objects.create(name="Middleware Tenant", slug="mw-tenant")
+        user = User.objects.create_user(email="user@mw.com", password="password")
+        token = create_token_for_user(user, tenant.id, role="member")
+
+        factory = RequestFactory()
+        request = factory.get("/api/auth/me/", HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        middleware = TenantContextMiddleware(lambda req: None)
+        middleware(request)
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT current_setting('app.tenant_id', true);")
+            current = cursor.fetchone()[0]
+
+        self.assertEqual(current, str(tenant.id))
+
