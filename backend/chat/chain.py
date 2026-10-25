@@ -170,8 +170,8 @@ def get_langchain_chat_model(
         streaming=streaming,
         temperature=temperature,
         max_tokens=max_tokens,
-        timeout=10.0,
-        request_timeout=10.0,
+        timeout=60.0,
+        request_timeout=60.0,
     )
 
 

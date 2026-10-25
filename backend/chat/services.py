@@ -47,6 +47,7 @@ class ChatService:
             self.chat_model = MockLangChainChatModel()
         else:
             self.chat_model = get_langchain_chat_model()
+        self.is_mock = isinstance(self.chat_model, MockLangChainChatModel)
 
     def get_or_create_conversation(
         self,
@@ -126,21 +127,24 @@ class ChatService:
             try:
                 raw_answer = chain.invoke({"context": context_str, "question": query})
             except Exception as exc:
-                logger.warning(
-                    f"[ChatService] Primary chain invocation failed: {exc}. Falling back to mock generator."
+                logger.error(
+                    f"[ChatService] Primary chain invocation failed: {exc}."
                 )
-                from langchain_core.output_parsers import StrOutputParser
+                if self.is_mock:
+                    from langchain_core.output_parsers import StrOutputParser
 
-                from .chain import create_vaultrag_prompt
+                    from .chain import create_vaultrag_prompt
 
-                fallback_chain = (
-                    create_vaultrag_prompt()
-                    | MockLangChainChatModel()
-                    | StrOutputParser()
-                )
-                raw_answer = fallback_chain.invoke(
-                    {"context": context_str, "question": query}
-                )
+                    fallback_chain = (
+                        create_vaultrag_prompt()
+                        | MockLangChainChatModel()
+                        | StrOutputParser()
+                    )
+                    raw_answer = fallback_chain.invoke(
+                        {"context": context_str, "question": query}
+                    )
+                else:
+                    raw_answer = f"Error generating answer from LLM provider: {exc}"
 
             # 5. Anti-leak shield backstop: verify citations
             clean_answer, final_citations = AntiLeakShield.verify_citations(
@@ -245,24 +249,29 @@ class ChatService:
                     full_content_parts.append(token)
                     yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
             except Exception as exc:
-                logger.warning(
-                    f"[ChatService] Primary chain stream failed: {exc}. Falling back to mock generator."
+                logger.error(
+                    f"[ChatService] Primary chain stream failed: {exc}."
                 )
                 if not full_content_parts:
-                    from langchain_core.output_parsers import StrOutputParser
+                    if self.is_mock:
+                        from langchain_core.output_parsers import StrOutputParser
 
-                    from .chain import create_vaultrag_prompt
+                        from .chain import create_vaultrag_prompt
 
-                    fallback_chain = (
-                        create_vaultrag_prompt()
-                        | MockLangChainChatModel()
-                        | StrOutputParser()
-                    )
-                    for token in fallback_chain.stream(
-                        {"context": context_str, "question": query}
-                    ):
-                        full_content_parts.append(token)
-                        yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
+                        fallback_chain = (
+                            create_vaultrag_prompt()
+                            | MockLangChainChatModel()
+                            | StrOutputParser()
+                        )
+                        for token in fallback_chain.stream(
+                            {"context": context_str, "question": query}
+                        ):
+                            full_content_parts.append(token)
+                            yield f"event: delta\ndata: {json.dumps({'content': token})}\n\n"
+                    else:
+                        error_msg = f"Error generating answer from LLM provider: {exc}"
+                        full_content_parts.append(error_msg)
+                        yield f"event: delta\ndata: {json.dumps({'content': error_msg})}\n\n"
 
             full_answer = "".join(full_content_parts)
             clean_answer, final_citations = AntiLeakShield.verify_citations(
