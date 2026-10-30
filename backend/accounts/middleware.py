@@ -12,6 +12,9 @@ def set_tenant_db_context(tenant_id: UUID | str | None):
     Sets or clears the transaction-local PostgreSQL session variable `app.tenant_id`.
     Uses is_local=true so pooled database connections automatically reset context.
     """
+    if connection.vendor != "postgresql":
+        return
+
     tenant_str = str(tenant_id) if tenant_id else ""
     try:
         with connection.cursor() as cursor:

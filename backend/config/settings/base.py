@@ -86,6 +86,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Database Configuration (PostgreSQL 16 + pgvector)
+# ATOMIC_REQUESTS guarantees that every HTTP request runs inside a transaction,
+# ensuring PostgreSQL transaction-local RLS variables ('app.tenant_id') remain active.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -94,6 +96,7 @@ DATABASES = {
         "PASSWORD": config("POSTGRES_PASSWORD", default="vaultrag_secure_password_dev"),
         "HOST": config("POSTGRES_HOST", default="postgres"),
         "PORT": config("POSTGRES_PORT", default="5432"),
+        "ATOMIC_REQUESTS": True,
     }
 }
 
@@ -174,4 +177,3 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=True, cast=bool)
 CELERY_TASK_EAGER_PROPAGATES = True
-

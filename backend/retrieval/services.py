@@ -7,7 +7,8 @@ from django.db.models import Q
 from pgvector.django import CosineDistance
 
 from accounts.context import UserContext
-from documents.models import Chunk, Document
+from documents.models import Chunk
+from documents.permissions import get_permitted_chunks_q
 from ingestion.embedder import EmbeddingAdapter
 from retrieval.reranker import RerankerAdapter
 
@@ -109,25 +110,12 @@ class RetrievalService:
 
     def _get_acl_scoped_queryset(self, user_ctx: UserContext):
         """
-        Constructs the authoritative SQL pre-filter queryset.
+        Constructs the authoritative SQL pre-filter queryset via Single Source of Truth (Rule 4).
         This filter MUST be applied to both dense and sparse paths.
         """
-        qs = Chunk.objects.filter(
-            tenant_id=user_ctx.tenant_id,
-            document__status=Document.Status.READY,
-        ).select_related("document")
-
-        if not user_ctx.is_admin():
-            acl_filter = Q(document__visibility=Document.Visibility.TENANT) | Q(
-                document__owner_id=user_ctx.user_id
-            )
-            if user_ctx.group_ids:
-                acl_filter |= Q(document__visibility=Document.Visibility.GROUP) & Q(
-                    document__permissions__group_id__in=user_ctx.group_ids
-                )
-            qs = qs.filter(acl_filter).distinct()
-
-        return qs
+        return Chunk.objects.filter(
+            get_permitted_chunks_q(user_ctx)
+        ).select_related("document").distinct()
 
     def _dense_search(
         self,

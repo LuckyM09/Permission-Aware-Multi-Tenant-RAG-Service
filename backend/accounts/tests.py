@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -188,7 +189,9 @@ class UserContextDataclassTests(TestCase):
 
 class TenantContextMiddlewareTests(TestCase):
     def test_middleware_sets_postgres_session_variable(self):
-        from django.db import connection
+        if connection.vendor != "postgresql":
+            self.skipTest("PostgreSQL session settings test requires PostgreSQL.")
+
         from django.test.client import RequestFactory
 
         from accounts.middleware import TenantContextMiddleware
@@ -209,4 +212,3 @@ class TenantContextMiddlewareTests(TestCase):
             current = cursor.fetchone()[0]
 
         self.assertEqual(current, str(tenant.id))
-

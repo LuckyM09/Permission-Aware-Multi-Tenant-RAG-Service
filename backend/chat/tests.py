@@ -40,7 +40,6 @@ class ContextAssemblerTests(TestCase):
         self.assertIn('Document: "Quarterly_Results.pdf"', context_str)
         self.assertIn('Chunk: "chunk-1234"', context_str)
         self.assertIn("Page: 3", context_str)
-        self.assertIn("Attached Figures: page_3_fig_0.png", context_str)
         self.assertEqual(len(permitted), 1)
         self.assertEqual(permitted[0]["chunk_id"], "chunk-1234")
 

@@ -4,6 +4,41 @@ import uuid
 from django.db import migrations, models
 
 
+def apply_audit_trigger(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("""
+        CREATE OR REPLACE FUNCTION prevent_audit_modification()
+        RETURNS TRIGGER AS $$
+        BEGIN
+            RAISE EXCEPTION 'AuditLog records are append-only. UPDATE and DELETE operations are forbidden.';
+        END;
+        $$ LANGUAGE plpgsql;
+
+        DROP TRIGGER IF EXISTS audit_immutable_trigger ON audit_auditlog;
+        CREATE TRIGGER audit_immutable_trigger
+        BEFORE UPDATE OR DELETE ON audit_auditlog
+        FOR EACH ROW
+        EXECUTE FUNCTION prevent_audit_modification();
+
+        DO $$
+        BEGIN
+            EXECUTE 'REVOKE UPDATE, DELETE ON audit_auditlog FROM vaultrag_app';
+        EXCEPTION WHEN OTHERS THEN
+            NULL;
+        END $$;
+    """)
+
+
+def reverse_audit_trigger(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("""
+        DROP TRIGGER IF EXISTS audit_immutable_trigger ON audit_auditlog;
+        DROP FUNCTION IF EXISTS prevent_audit_modification();
+    """)
+
+
 class Migration(migrations.Migration):
 
     initial = True
@@ -94,7 +129,8 @@ class Migration(migrations.Migration):
                 (
                     "user_agent",
                     models.TextField(
-                        blank=True, help_text="Client browser / SDK User-Agent string"
+                        blank=True,
+                        help_text="Client browser / SDK User-Agent string",
                     ),
                 ),
                 (
@@ -137,31 +173,5 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        migrations.RunSQL(
-            sql="""
-            CREATE OR REPLACE FUNCTION prevent_audit_modification()
-            RETURNS TRIGGER AS $$
-            BEGIN
-                RAISE EXCEPTION 'AuditLog records are append-only. UPDATE and DELETE operations are forbidden.';
-            END;
-            $$ LANGUAGE plpgsql;
-
-            DROP TRIGGER IF EXISTS audit_immutable_trigger ON audit_auditlog;
-            CREATE TRIGGER audit_immutable_trigger
-            BEFORE UPDATE OR DELETE ON audit_auditlog
-            FOR EACH ROW
-            EXECUTE FUNCTION prevent_audit_modification();
-
-            DO $$
-            BEGIN
-                EXECUTE 'REVOKE UPDATE, DELETE ON audit_auditlog FROM vaultrag_app';
-            EXCEPTION WHEN OTHERS THEN
-                NULL;
-            END $$;
-            """,
-            reverse_sql="""
-            DROP TRIGGER IF EXISTS audit_immutable_trigger ON audit_auditlog;
-            DROP FUNCTION IF EXISTS prevent_audit_modification();
-            """,
-        ),
+        migrations.RunPython(apply_audit_trigger, reverse_code=reverse_audit_trigger),
     ]

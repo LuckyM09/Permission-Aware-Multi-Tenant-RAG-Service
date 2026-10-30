@@ -38,7 +38,7 @@ interface DocumentItem {
   error_message: string;
   created_at: string;
   owner_email: string;
-  permission_groups?: Array<{ id: string; name: string }>;
+  assigned_groups?: Array<{ id: string; name: string }>;
 }
 
 export default function DocumentsPage() {
@@ -688,9 +688,9 @@ export default function DocumentsPage() {
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium">
                                 👥 Group
                               </span>
-                              {doc.permission_groups && doc.permission_groups.length > 0 && (
+                              {doc.assigned_groups && doc.assigned_groups.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
-                                  {doc.permission_groups.map((g) => (
+                                  {doc.assigned_groups.map((g) => (
                                     <span
                                       key={g.id}
                                       className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400"

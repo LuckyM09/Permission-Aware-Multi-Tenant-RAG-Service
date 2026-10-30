@@ -4,6 +4,26 @@ import pgvector.django.vector
 from django.db import migrations
 
 
+def alter_embedding_column(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("""
+        DROP INDEX IF EXISTS chunk_vec_hnsw_idx;
+        ALTER TABLE documents_chunk ALTER COLUMN embedding TYPE vector(2048) USING array_fill(0.0, ARRAY[2048])::vector;
+        CREATE INDEX chunk_vec_hnsw_idx ON documents_chunk USING hnsw ((embedding::halfvec(2048)) halfvec_cosine_ops) WITH (m = 16, ef_construction = 64);
+    """)
+
+
+def reverse_alter_embedding_column(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    schema_editor.execute("""
+        DROP INDEX IF EXISTS chunk_vec_hnsw_idx;
+        ALTER TABLE documents_chunk ALTER COLUMN embedding TYPE vector(1536) USING array_fill(0.0, ARRAY[1536])::vector;
+        CREATE INDEX chunk_vec_hnsw_idx ON documents_chunk USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
+    """)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -23,17 +43,9 @@ class Migration(migrations.Migration):
                 ),
             ],
             database_operations=[
-                migrations.RunSQL(
-                    sql="""
-                    DROP INDEX IF EXISTS chunk_vec_hnsw_idx;
-                    ALTER TABLE documents_chunk ALTER COLUMN embedding TYPE vector(2048) USING array_fill(0.0, ARRAY[2048])::vector;
-                    CREATE INDEX chunk_vec_hnsw_idx ON documents_chunk USING hnsw ((embedding::halfvec(2048)) halfvec_cosine_ops) WITH (m = 16, ef_construction = 64);
-                    """,
-                    reverse_sql="""
-                    DROP INDEX IF EXISTS chunk_vec_hnsw_idx;
-                    ALTER TABLE documents_chunk ALTER COLUMN embedding TYPE vector(1536) USING array_fill(0.0, ARRAY[1536])::vector;
-                    CREATE INDEX chunk_vec_hnsw_idx ON documents_chunk USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
-                    """,
+                migrations.RunPython(
+                    alter_embedding_column,
+                    reverse_code=reverse_alter_embedding_column,
                 ),
             ],
         ),

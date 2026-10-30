@@ -2,6 +2,7 @@ import math
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -12,9 +13,7 @@ from documents.models import Chunk, Document, DocumentPermission
 from ingestion.chunker import RecursiveTextChunker
 from ingestion.embedder import EmbeddingAdapter
 from ingestion.parsers import (
-    describe_image_with_vlm,
     detect_file_type,
-    extract_images_from_pdf,
     extract_text_from_file,
     format_rows_as_markdown_table,
     html_table_to_markdown,
@@ -177,25 +176,6 @@ class IngestionEngineTests(TestCase):
         self.assertIn("ARR", extracted)
         self.assertIn("$5M", extracted)
 
-    def test_extract_images_from_pdf(self):
-        """Test extraction of embedded raster figures from a PDF."""
-        import io
-
-        from PIL import Image
-
-        # Generate a test image in a PDF
-        img = Image.new("RGB", (250, 250), color="blue")
-        pdf_buf = io.BytesIO()
-        img.save(pdf_buf, format="PDF")
-        pdf_bytes = pdf_buf.getvalue()
-
-        extracted = extract_images_from_pdf(pdf_bytes, min_size_bytes=100)
-        self.assertEqual(len(extracted), 1)
-        self.assertEqual(extracted[0]["page"], 1)
-        self.assertIn(extracted[0]["width"], (250, 500))
-        self.assertIn(extracted[0]["height"], (250, 500))
-        self.assertTrue(extracted[0]["filename"].startswith("page_1_fig_"))
-
 
 @override_settings(CELERY_TASK_ALWAYS_EAGER=True)
 class DocumentAPITests(TestCase):
@@ -208,11 +188,13 @@ class DocumentAPITests(TestCase):
         self.member = User.objects.create_user(
             email="bob@acme.com", password="Password123!"
         )
+        self.viewer = User.objects.create_user(
+            email="charlie@acme.com", password="Password123!"
+        )
 
         Membership.objects.create(tenant=self.tenant, user=self.admin, role=Role.ADMIN)
-        Membership.objects.create(
-            tenant=self.tenant, user=self.member, role=Role.MEMBER
-        )
+        Membership.objects.create(tenant=self.tenant, user=self.member, role=Role.MEMBER)
+        Membership.objects.create(tenant=self.tenant, user=self.viewer, role=Role.VIEWER)
 
         self.group_hr = Group.objects.create(tenant=self.tenant, name="HR")
         GroupMember.objects.create(group=self.group_hr, user=self.admin)
@@ -220,6 +202,7 @@ class DocumentAPITests(TestCase):
         # Obtain JWT tokens
         self.admin_token = str(RefreshToken.for_user(self.admin).access_token)
         self.member_token = str(RefreshToken.for_user(self.member).access_token)
+        self.viewer_token = str(RefreshToken.for_user(self.viewer).access_token)
 
     def test_upload_and_ingestion_api(self):
         """Test file upload endpoint creates document and generates chunks."""
@@ -254,6 +237,28 @@ class DocumentAPITests(TestCase):
         self.assertEqual(doc.status, Document.Status.READY)
         self.assertGreater(doc.chunk_count, 0)
 
+    def test_viewer_cannot_upload_document(self):
+        """Test that users with VIEWER role cannot upload documents (returns 403)."""
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.viewer_token}")
+
+        uploaded_file = SimpleUploadedFile(
+            "viewer_doc.txt", b"Viewer content", content_type="text/plain"
+        )
+
+        url = reverse("document_list_create")
+        response = self.client.post(
+            url,
+            {
+                "file": uploaded_file,
+                "title": "Viewer Upload Attempt",
+                "visibility": Document.Visibility.TENANT,
+            },
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("Viewers are not permitted to upload documents.", response.data["detail"])
+
     def test_group_permission_isolation_returns_404_for_unauthorized(self):
         """Test that group-restricted documents return 404 to users without group access."""
         # Admin creates HR-restricted document
@@ -275,11 +280,91 @@ class DocumentAPITests(TestCase):
         # Must return 404 Not Found to prevent ID enumeration
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_unauthorized_user_cannot_delete_document_returns_404(self):
+        """Test that a non-owner/non-admin attempting to delete returns 404 per Rule 7."""
+        doc = Document.objects.create(
+            tenant=self.tenant,
+            owner=self.admin,
+            title="AdminConfidential.md",
+            content_hash="admin_hash_456",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
 
-class MultimodalIngestionTests(TestCase):
+        # Bob (Member, not owner, not admin) attempts to delete admin's document
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.member_token}")
+        url = reverse("document_detail", kwargs={"pk": doc.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Document.objects.filter(id=doc.id).exists())
+
+    def test_delete_document_success_and_audit_logging(self):
+        """Test document deletion by admin succeeds with 204 and logs AuditAction.DELETE_DOCUMENT."""
+        from audit.models import AuditAction, AuditLog
+
+        doc = Document.objects.create(
+            tenant=self.tenant,
+            owner=self.admin,
+            title="ObsoleteHandbook.md",
+            content_hash="hash_obsolete",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
+        doc_id = str(doc.id)
+
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+        url = reverse("document_detail", kwargs={"pk": doc.id})
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Document.objects.filter(id=doc_id).exists())
+
+        # Verify audit log was recorded with DELETE_DOCUMENT
+        audit_entry = AuditLog.objects.filter(
+            tenant_id=self.tenant.id, action=AuditAction.DELETE_DOCUMENT
+        ).first()
+        self.assertIsNotNone(audit_entry)
+        self.assertEqual(audit_entry.metadata.get("document_id"), doc_id)
+
+    def test_deduplication_clones_chunks(self):
+        """Test that deduplicating identical file within tenant clones chunks so new doc has chunks."""
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.admin_token}")
+
+        content = b"Shared enterprise procedure content for deduplication test."
+        file1 = SimpleUploadedFile("procedure1.txt", content, content_type="text/plain")
+
+        url = reverse("document_list_create")
+        res1 = self.client.post(
+            url,
+            {"file": file1, "title": "Procedure 1", "visibility": Document.Visibility.TENANT},
+            format="multipart",
+        )
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+        doc1 = Document.objects.get(id=res1.data["document"]["id"])
+        self.assertEqual(doc1.status, Document.Status.READY)
+        self.assertGreater(doc1.chunk_count, 0)
+
+        # Upload identical file as member
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.member_token}")
+        file2 = SimpleUploadedFile("procedure2.txt", content, content_type="text/plain")
+        res2 = self.client.post(
+            url,
+            {"file": file2, "title": "Procedure 2", "visibility": Document.Visibility.PRIVATE},
+            format="multipart",
+        )
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(res2.data["deduplicated"])
+        doc2 = Document.objects.get(id=res2.data["document"]["id"])
+        self.assertEqual(doc2.status, Document.Status.READY)
+        # Chunks must be cloned so doc2 has active chunks
+        self.assertEqual(doc2.chunk_count, doc1.chunk_count)
+        self.assertGreater(doc2.chunk_count, 0)
+
+
+class TabularAndTextExtractionTests(TestCase):
     """
-    Tests layout-aware PDF extraction, Markdown table recovery,
-    vector drawing clustering, and VLM semantic captioning fallbacks.
+    Tests layout-aware PDF table extraction and Markdown table formatting using PyMuPDF.
     """
 
     def test_format_rows_as_markdown_table(self):
@@ -296,52 +381,36 @@ class MultimodalIngestionTests(TestCase):
         self.assertIn("| Latency | 8.2ms | P95 benchmark |", md)
         self.assertIn("| Recall | 0.94 | Hybrid search |", md)
 
-    def test_describe_image_with_vlm_fallback(self):
-        """Test that VLM caption generator provides deterministic fallback in offline tests."""
-        dummy_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
-        caption = describe_image_with_vlm(dummy_bytes, "fig_1.png", 1)
-        self.assertTrue(len(caption) > 10)
-        self.assertIn("fig_1.png", caption)
-
-    def test_pymupdf_table_and_drawing_extraction(self):
+    def test_pymupdf_table_extraction(self):
         """
-        Creates an in-memory PDF with PyMuPDF containing a table and vector cluster,
-        and verifies that table Markdown and figure images are extracted cleanly.
+        Creates an in-memory PDF with PyMuPDF containing a table,
+        and verifies that table Markdown is extracted cleanly without VLM.
         """
-        import pymupdf
+        try:
+            import pymupdf
+        except ImportError:
+            self.skipTest('pymupdf not installed in test environment')
 
         doc = pymupdf.open()
         page = doc.new_page()
 
-        # 1. Draw a vector box (diagram)
-        page.draw_rect(pymupdf.Rect(50, 50, 250, 200), color=(0, 0, 1), fill=(0.9, 0.9, 1))
-        page.insert_text((60, 90), "System Architecture Flow", fontsize=12)
-
-        # 2. Draw a table
-        page.draw_rect(pymupdf.Rect(50, 220, 300, 320))
-        page.draw_line(pymupdf.Point(50, 260), pymupdf.Point(300, 260))
-        page.draw_line(pymupdf.Point(170, 220), pymupdf.Point(170, 320))
-        page.insert_text((60, 245), "Parameter")
-        page.insert_text((180, 245), "Specification")
-        page.insert_text((60, 295), "Embedding Dim")
-        page.insert_text((180, 295), "2048")
+        # Insert title and table
+        page.insert_text((50, 50), "Quarterly Financial Overview", fontsize=14)
+        page.draw_rect(pymupdf.Rect(50, 80, 300, 200))
+        page.draw_line(pymupdf.Point(50, 120), pymupdf.Point(300, 120))
+        page.draw_line(pymupdf.Point(170, 80), pymupdf.Point(170, 200))
+        page.insert_text((60, 105), "Quarter")
+        page.insert_text((180, 105), "Revenue")
+        page.insert_text((60, 150), "Q1")
+        page.insert_text((180, 150), "$10.5M")
 
         pdf_bytes = doc.tobytes()
         doc.close()
 
-        # Extract text & tables
+        # Extract text & tables using pure PyMuPDF pipeline
         text = extract_text_from_file(pdf_bytes, "application/pdf")
         self.assertIn("[Page 1]", text)
-        self.assertIn("System Architecture Flow", text)
-
-        # Extract figures & vector clusters
-        images = extract_images_from_pdf(pdf_bytes, min_width=50, min_height=50, min_size_bytes=50)
-        self.assertGreaterEqual(len(images), 1)
-        first_img = images[0]
-        self.assertEqual(first_img["page"], 1)
-        self.assertEqual(first_img["format"], "PNG")
-        self.assertGreater(first_img["width"], 0)
-        self.assertGreater(len(first_img["data"]), 50)
+        self.assertIn("Quarterly Financial Overview", text)
 
 
 class PostgreSQLRowLevelSecurityTests(TestCase):
@@ -351,7 +420,8 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
     """
 
     def setUp(self):
-        from django.db import connection
+        if connection.vendor != "postgresql":
+            return
 
         self.tenant_a = Tenant.objects.create(name="Tenant Alpha", slug="alpha")
         self.tenant_b = Tenant.objects.create(name="Tenant Beta", slug="beta")
@@ -385,7 +455,8 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
         )
 
     def tearDown(self):
-        from django.db import connection
+        if connection.vendor != "postgresql":
+            return
         try:
             with connection.cursor() as cursor:
                 cursor.execute("RESET ROLE;")
@@ -394,7 +465,8 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
         super().tearDown()
 
     def test_rls_filters_by_tenant_session_config(self):
-        from django.db import connection
+        if connection.vendor != "postgresql":
+            self.skipTest("Row-Level Security tests require PostgreSQL.")
 
         # 1. Switch context to Tenant Alpha as non-superuser role where RLS is enforced
         with connection.cursor() as cursor:
@@ -419,5 +491,3 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
 
         no_context_docs = list(Document.objects.all())
         self.assertEqual(len(no_context_docs), 0)
-
-

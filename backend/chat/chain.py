@@ -85,8 +85,6 @@ class MockLangChainChatModel(BaseChatModel):
                 )
             else:
                 doc_title, chunk_id, page_num = chunks_found[0]
-                fig_match = re.search(r"Attached Figures:\s*([^\n]+)", context_str)
-                fig_note = f" (Referencing figure: [Figure: {fig_match.group(1)}])" if fig_match else ""
                 question = (
                     user_content.split("Question:")[-1].strip()
                     if "Question:" in user_content
@@ -95,7 +93,7 @@ class MockLangChainChatModel(BaseChatModel):
                 reply = (
                     f"Based on the authorized document '{doc_title}' [Doc: {doc_title}, Chunk: {chunk_id}], "
                     f"here is the information regarding '{question[:60]}': the document specifies verified "
-                    f"operational parameters for authorized users on page {page_num or 1}.{fig_note}"
+                    f"operational parameters for authorized users on page {page_num or 1}."
                 )
 
         generation = ChatGeneration(message=AIMessage(content=reply))

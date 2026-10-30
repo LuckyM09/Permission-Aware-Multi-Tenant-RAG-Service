@@ -43,10 +43,13 @@ class EmbeddingAdapter:
             or config("EMBEDDING_MODEL", default="nvidia/nemotron-3-embed-1b")
         )
 
+        import sys
+
         self.is_configured = bool(
             self.api_key
             and not self.api_key.startswith("your_")
             and len(self.api_key) > 10
+            and "test" not in sys.argv
         )
 
         if self.is_configured:

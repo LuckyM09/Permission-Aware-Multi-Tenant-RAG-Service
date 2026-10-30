@@ -17,7 +17,7 @@ class AuditLogPagination(LimitOffsetPagination):
 class AuditLogListView(APIView):
     """
     List tenant-scoped compliance audit log entries.
-    Only accessible by authenticated members of the tenant.
+    Only accessible by Tenant Administrators.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -28,6 +28,12 @@ class AuditLogListView(APIView):
             return Response(
                 {"detail": "No active tenant context."},
                 status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not user_ctx.is_admin():
+            return Response(
+                {"detail": "Audit logs are only accessible to tenant administrators."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         queryset = AuditLog.objects.filter(tenant_id=user_ctx.tenant_id)

@@ -1,6 +1,5 @@
 import logging
 
-from django.db.models import Q
 from rest_framework import permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -10,6 +9,11 @@ from accounts.context import get_user_context
 from ingestion.tasks import ingest_document_task
 
 from .models import Document
+from .permissions import (
+    can_delete_document,
+    can_view_document,
+    get_permitted_documents_q,
+)
 from .serializers import DocumentSerializer, DocumentUploadSerializer
 
 logger = logging.getLogger(__name__)
@@ -26,27 +30,24 @@ class DocumentListCreateView(APIView):
     def get(self, request):
         user_ctx = get_user_context(request)
 
-        # Scoped queryset based on user role and permissions
-        if user_ctx.is_admin():
-            queryset = Document.objects.filter(tenant_id=user_ctx.tenant_id)
-        else:
-            # Members and Viewers see: tenant-wide OR owned OR their permitted groups
-            queryset = Document.objects.filter(
-                Q(tenant_id=user_ctx.tenant_id)
-                & (
-                    Q(visibility=Document.Visibility.TENANT)
-                    | Q(owner_id=user_ctx.user_id)
-                    | (
-                        Q(visibility=Document.Visibility.GROUP)
-                        & Q(permissions__group_id__in=user_ctx.group_ids)
-                    )
-                )
-            ).distinct()
+        # Scoped queryset using Single Source of Truth for Permissions (Rule 4)
+        queryset = Document.objects.filter(
+            get_permitted_documents_q(user_ctx)
+        ).distinct()
 
         serializer = DocumentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
+        user_ctx = get_user_context(request)
+
+        # Role enforcement: Viewers cannot upload documents
+        if not user_ctx.is_member_or_admin():
+            return Response(
+                {"detail": "Viewers are not permitted to upload documents."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         serializer = DocumentUploadSerializer(
             data=request.data, context={"request": request}
         )
@@ -54,7 +55,7 @@ class DocumentListCreateView(APIView):
 
         document, was_deduplicated = serializer.save()
 
-        # Enqueue ingestion task
+        # Enqueue ingestion task if not deduplicated
         if not was_deduplicated:
             try:
                 ingest_document_task.delay(str(document.id))
@@ -69,7 +70,6 @@ class DocumentListCreateView(APIView):
                     logger.error(f"Synchronous ingestion failed: {sync_exc}")
 
         # Record audit log
-        user_ctx = get_user_context(request)
         if user_ctx.tenant_id:
             from audit.models import AuditAction
             from audit.services import AuditService
@@ -118,23 +118,12 @@ class DocumentDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Non-admins can only view if permitted
-        if not user_ctx.is_admin():
-            is_permitted = (
-                document.visibility == Document.Visibility.TENANT
-                or document.owner_id == user_ctx.user_id
-                or (
-                    document.visibility == Document.Visibility.GROUP
-                    and document.permissions.filter(
-                        group_id__in=user_ctx.group_ids
-                    ).exists()
-                )
+        # Single source of truth check
+        if not can_view_document(user_ctx, document):
+            return None, Response(
+                {"detail": "Document not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
-            if not is_permitted:
-                return None, Response(
-                    {"detail": "Document not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
 
         return document, None
 
@@ -152,11 +141,11 @@ class DocumentDetailView(APIView):
         if error_response:
             return error_response
 
-        # Only owner or Tenant Admin can delete
-        if not user_ctx.is_admin() and document.owner_id != user_ctx.user_id:
+        # Golden Rule 7: Zero-Enumeration - return 404 rather than 403 to prevent enumeration
+        if not can_delete_document(user_ctx, document):
             return Response(
-                {"detail": "You do not have permission to delete this document."},
-                status=status.HTTP_403_FORBIDDEN,
+                {"detail": "Document not found."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
         # Record audit log before deletion
@@ -173,7 +162,7 @@ class DocumentDetailView(APIView):
 
         AuditService.log_event(
             tenant_id=user_ctx.tenant_id,
-            action=AuditAction.DELETE_DOC,
+            action=AuditAction.DELETE_DOCUMENT,
             user_id=user_ctx.user_id,
             user_email=user_ctx.email,
             query_text_sanitized=f"Deleted '{doc_title}' ({doc_id})",

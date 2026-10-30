@@ -35,30 +35,29 @@ def get_user_context(request: Request) -> UserContext:
 
     token = getattr(request, "auth", None)
 
-    # 1. Primary path: Resolve claims from the verified JWT payload
-    if token and isinstance(token, dict):
-        try:
-            tenant_id_str = token.get("tenant_id")
-            if not tenant_id_str:
-                raise AuthenticationFailed("Token is missing tenant_id claim.")
+    # 1. Primary path: Resolve claims from the verified JWT payload (AccessToken or dict)
+    payload = getattr(token, "payload", token) if token else None
+    if payload and hasattr(payload, "get"):
+        tenant_id_str = payload.get("tenant_id")
+        if tenant_id_str:
+            try:
+                tenant_id = UUID(str(tenant_id_str))
+                user_id = UUID(str(payload.get("user_id", request.user.id)))
+                role = str(payload.get("role", "member"))
+                group_id_strs = payload.get("groups", [])
+                group_ids = tuple(UUID(str(gid)) for gid in group_id_strs)
 
-            tenant_id = UUID(str(tenant_id_str))
-            user_id = UUID(str(token.get("user_id", request.user.id)))
-            role = str(token.get("role", "member"))
-            group_id_strs = token.get("groups", [])
-            group_ids = tuple(UUID(str(gid)) for gid in group_id_strs)
-
-            return UserContext(
-                tenant_id=tenant_id,
-                user_id=user_id,
-                email=str(token.get("email", request.user.email)),
-                role=role,
-                group_ids=group_ids,
-            )
-        except (ValueError, TypeError) as exc:
-            raise AuthenticationFailed(
-                f"Malformed claims in authentication token: {exc}"
-            ) from exc
+                return UserContext(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    email=str(payload.get("email", request.user.email)),
+                    role=role,
+                    group_ids=group_ids,
+                )
+            except (ValueError, TypeError) as exc:
+                raise AuthenticationFailed(
+                    f"Malformed claims in authentication token: {exc}"
+                ) from exc
 
     # 2. Fallback path (e.g. SessionAuth, testing, or token without claims): Resolve from database
     membership = (

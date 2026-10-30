@@ -92,6 +92,14 @@ class AuditServiceAndAPITests(TestCase):
         self.assertEqual(results[0]["tenant_id"], str(self.tenant_a.id))
         self.assertNotIn("Tenant B", results[0]["query_text_sanitized"])
 
+    def test_audit_api_denied_for_non_admins(self):
+        token_member = create_token_for_user(self.user_a, self.tenant_a.id, role="member")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token_member}")
+
+        res = self.client.get("/api/v1/audit/logs/")
+        self.assertEqual(res.status_code, 403)
+        self.assertIn("Audit logs are only accessible to tenant administrators.", res.data["detail"])
+
     def test_filter_audit_logs_by_action_and_search(self):
         token_a = create_token_for_user(self.user_a, self.tenant_a.id, role="admin")
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token_a}")

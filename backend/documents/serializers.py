@@ -1,12 +1,13 @@
 import hashlib
 
+from django.db import transaction
 from rest_framework import serializers
 
 from accounts.context import get_user_context
 from ingestion.parsers import detect_file_type
 from tenants.models import Group
 
-from .models import Document, DocumentPermission
+from .models import Chunk, Document, DocumentPermission
 
 
 class DocumentSerializer(serializers.ModelSerializer):
@@ -128,26 +129,45 @@ class DocumentUploadSerializer(serializers.Serializer):
             status=Document.Status.READY,
         ).first()
 
-        document = Document.objects.create(
-            tenant_id=user_ctx.tenant_id,
-            owner=user,
-            title=title,
-            file=uploaded_file,
-            file_type=detected_type,
-            file_size=uploaded_file.size,
-            content_hash=content_hash,
-            visibility=visibility,
-            status=Document.Status.READY if existing_doc else Document.Status.UPLOADED,
-        )
-
-        # Assign group permissions if visibility is group
-        if visibility == Document.Visibility.GROUP and group_ids:
-            valid_groups = Group.objects.filter(
-                tenant_id=user_ctx.tenant_id, id__in=group_ids
+        with transaction.atomic():
+            document = Document.objects.create(
+                tenant_id=user_ctx.tenant_id,
+                owner=user,
+                title=title,
+                file=uploaded_file,
+                file_type=detected_type,
+                file_size=uploaded_file.size,
+                content_hash=content_hash,
+                visibility=visibility,
+                status=Document.Status.READY if existing_doc else Document.Status.UPLOADED,
+                metadata=dict(existing_doc.metadata) if existing_doc else {},
             )
-            permissions_to_create = [
-                DocumentPermission(document=document, group=grp) for grp in valid_groups
-            ]
-            DocumentPermission.objects.bulk_create(permissions_to_create)
+
+            # Assign group permissions if visibility is group
+            if visibility == Document.Visibility.GROUP and group_ids:
+                valid_groups = Group.objects.filter(
+                    tenant_id=user_ctx.tenant_id, id__in=group_ids
+                )
+                permissions_to_create = [
+                    DocumentPermission(document=document, group=grp) for grp in valid_groups
+                ]
+                DocumentPermission.objects.bulk_create(permissions_to_create)
+
+            # If deduplicated, clone existing chunks into new document to prevent 0-chunk ghost documents
+            if existing_doc:
+                existing_chunks = Chunk.objects.filter(document=existing_doc).order_by("position")
+                chunks_to_clone = [
+                    Chunk(
+                        tenant_id=user_ctx.tenant_id,
+                        document=document,
+                        position=chunk.position,
+                        text=chunk.text,
+                        embedding=chunk.embedding,
+                        metadata=dict(chunk.metadata),
+                    )
+                    for chunk in existing_chunks
+                ]
+                if chunks_to_clone:
+                    Chunk.objects.bulk_create(chunks_to_clone)
 
         return document, existing_doc is not None
