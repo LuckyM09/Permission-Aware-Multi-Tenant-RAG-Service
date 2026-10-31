@@ -55,6 +55,15 @@ interface ChatMessage {
   created_at?: string;
 }
 
+function sanitizeDisplayMessage(content: string): string {
+  if (!content) return "";
+  return content
+    .replace(/\s*\[(?:Doc(?:ument)?:\s*[^,\]]+,\s*)?Chunk:\s*[^\]]+\]/gi, "")
+    .replace(/\s*\[Chunk:\s*[^\]]+\]/gi, "")
+    .replace(/\s+([.,!?:;])/g, "$1")
+    .trim();
+}
+
 interface ConversationItem {
   id: string;
   title: string;
@@ -517,7 +526,7 @@ export default function ChatPage() {
             {/* Model Badge */}
             <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[11px] font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Llama 3.2 11B Vision</span>
+              <span>NVIDIA Nemotron 3.5</span>
             </div>
 
             {/* Shield Badge */}
@@ -758,7 +767,7 @@ export default function ChatPage() {
                   <p className="text-xs sm:text-sm text-slate-400 max-w-lg mx-auto leading-relaxed">
                     Powered by{" "}
                     <span className="text-emerald-300 font-mono font-medium">
-                      Llama 3.2 11B (Vision)
+                      NVIDIA Nemotron 3.5
                     </span>
                     . Context is dynamically fenced with strict XML delimiters and audited by our{" "}
                     <span className="text-indigo-300 font-medium">Anti-Leak Shield</span>.
@@ -797,7 +806,7 @@ export default function ChatPage() {
                   >
                     {/* Role Header */}
                     <div className="flex items-center gap-2 text-[10px] text-slate-500 px-1 font-mono">
-                      <span>{isUser ? "You" : "Llama 3.2 11B"}</span>
+                      <span>{isUser ? "You" : "NVIDIA Nemotron 3.5"}</span>
                       {msg.created_at && (
                         <span>• {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       )}
@@ -813,7 +822,7 @@ export default function ChatPage() {
                     >
                       {/* Content */}
                       <div className="whitespace-pre-wrap font-sans">
-                        {msg.content || (
+                        {sanitizeDisplayMessage(msg.content) || (
                           <span className="flex items-center gap-1.5 text-slate-400 italic">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                             Synthesizing grounded response...
