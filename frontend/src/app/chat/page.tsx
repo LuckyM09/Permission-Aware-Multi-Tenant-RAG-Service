@@ -43,6 +43,7 @@ interface CitationItem {
   similarity: number;
   visibility: "private" | "group" | "tenant";
   text?: string;
+  text_snippet?: string;
   images?: CitationImage[];
   score?: number;
 }
@@ -518,6 +519,12 @@ export default function ChatPage() {
                 className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
               >
                 🛡️ Audit Ledger
+              </Link>
+              <Link
+                href="/admin"
+                className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-colors"
+              >
+                ⚙️ Admin
               </Link>
             </nav>
           </div>
