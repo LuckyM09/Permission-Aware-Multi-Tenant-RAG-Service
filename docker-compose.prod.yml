@@ -1,0 +1,145 @@
+name: vaultrag-prod
+
+services:
+  # ---------------------------------------------------------------------------
+  # 1. PostgreSQL 16 + pgvector Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vaultrag-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vaultrag_db}
+      POSTGRES_USER: ${POSTGRES_USER:-vaultrag_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password must be set in production}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+      - ./infra/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vaultrag_app} -d ${POSTGRES_DB:-vaultrag_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - vaultrag-prod-net
+
+  # ---------------------------------------------------------------------------
+  # 2. Redis Cache & Celery Broker
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: vaultrag-redis-prod
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vaultrag-prod-net
+
+  # ---------------------------------------------------------------------------
+  # 3. Django Production Backend (Gunicorn, Non-Root)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/backend/Dockerfile.prod
+    container_name: vaultrag-backend-prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend_media:/app/media
+      - backend_static:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - vaultrag-prod-net
+
+  # ---------------------------------------------------------------------------
+  # 4. Celery Ingestion Worker (Non-Root)
+  # ---------------------------------------------------------------------------
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/backend/Dockerfile.prod
+    container_name: vaultrag-celery-worker-prod
+    restart: always
+    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency", "4"]
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - backend_media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - vaultrag-prod-net
+
+  # ---------------------------------------------------------------------------
+  # 5. Next.js Production Frontend (Standalone, Non-Root)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../infra/docker/frontend/Dockerfile.prod
+    container_name: vaultrag-frontend-prod
+    restart: always
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - INTERNAL_API_URL=http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - vaultrag-prod-net
+
+networks:
+  vaultrag-prod-net:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  backend_media:
+  backend_static:

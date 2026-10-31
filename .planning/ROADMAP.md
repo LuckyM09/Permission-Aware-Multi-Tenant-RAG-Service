@@ -17,13 +17,13 @@
   - Transaction-scoped connection middleware executing `set_config('app.tenant_id', ...)`.
   - Append-only `audit_auditlog` table with database trigger blocking `UPDATE`/`DELETE`.
   - Audit logging API endpoints and frontend Audit Log viewer.
-- [ ] **Phase 6: Admin UX & Access Explorer (M6)** *(NEXT)*
+- [x] **Phase 6: Admin UX & Access Explorer (M6)** *(COMPLETED)*
   - Tenant admin screens for user & group management.
   - Interactive Access Explorer: inspect exactly which documents any user can access and why.
-- [ ] **Phase 7: Adversarial Testing Suite & RAGAS Evaluation (M7)**
+- [x] **Phase 7: Adversarial Testing Suite & RAGAS Evaluation (M7)** *(COMPLETED)*
   - 12-category automated adversarial leakage test suite (cross-tenant, cross-group, IDOR, prompt injection).
   - RAGAS evaluation metrics report (faithfulness, context precision, answer relevance).
-- [ ] **Phase 8: Production Readiness & Observability (M8)**
+- [ ] **Phase 8: Production Readiness & Observability (M8)** *(NEXT)*
   - Multi-stage non-root Dockerfiles, security headers, rate limiting, Sentry error tracking, health check endpoints.
 - [ ] **Phase 9: Documentation & Portfolio Showcase (M9)**
   - System architecture diagram, design ADRs, benchmark results, scripted demo walkthrough.

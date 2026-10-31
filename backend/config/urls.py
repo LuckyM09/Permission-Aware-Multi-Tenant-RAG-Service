@@ -11,6 +11,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.tokens import VaultRAGTokenObtainPairView
 from accounts.views import CurrentUserView
+from config.views import LivenessCheckView, ReadinessCheckView
 from documents.views import DocumentDetailView, DocumentListCreateView
 
 
@@ -26,7 +27,9 @@ def health_check(request):
 
 
 urlpatterns = [
-    # Health checks
+    # Production Health & Readiness Probes
+    path("healthz", LivenessCheckView.as_view(), name="liveness_probe"),
+    path("readyz", ReadinessCheckView.as_view(), name="readiness_probe"),
     path("health/", health_check, name="health-check"),
     path("api/health/", health_check, name="api-health-check"),
     # Django Admin
@@ -61,6 +64,8 @@ urlpatterns = [
     path("api/v1/chat/", include("chat.urls")),
     # Compliance & Audit Logging
     path("api/v1/audit/", include("audit.urls")),
+    # Tenant Administration & Access Explorer
+    path("api/v1/tenants/", include("tenants.urls")),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

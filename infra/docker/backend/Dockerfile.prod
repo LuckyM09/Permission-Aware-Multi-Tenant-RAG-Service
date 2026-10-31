@@ -1,0 +1,60 @@
+# =============================================================================
+# Stage 1: Build & Dependencies
+# =============================================================================
+FROM python:3.10-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt && \
+    pip install --no-cache-dir --prefix=/install gunicorn
+
+# =============================================================================
+# Stage 2: Final Minimal Non-Root Production Runtime
+# =============================================================================
+FROM python:3.10-slim AS runner
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/install/bin:$PATH" \
+    PYTHONPATH="/install/lib/python3.10/site-packages:$PYTHONPATH"
+
+# Install minimal runtime shared libraries only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create dedicated non-root application user and group (UID 10001)
+RUN groupadd -g 10001 vaultrag && \
+    useradd -u 10001 -g vaultrag -m -s /bin/bash vaultrag
+
+WORKDIR /app
+
+# Copy python packages from builder
+COPY --from=builder /install /install
+
+# Copy backend application source
+COPY . /app
+
+# Set appropriate permissions for non-root user
+RUN mkdir -p /app/media /app/staticfiles && \
+    chown -R vaultrag:vaultrag /app
+
+USER 10001:10001
+
+EXPOSE 8000
+
+# Production command: Gunicorn WSGI with 4 workers and 2 threads
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", "--timeout", "60", "--access-logfile", "-", "--error-logfile", "-"]
