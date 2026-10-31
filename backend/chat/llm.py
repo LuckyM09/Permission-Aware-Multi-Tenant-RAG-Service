@@ -37,7 +37,7 @@ class LLMClient:
 
         self.model = (
             model
-            or config("LLM_MODEL", default="meta/llama-3.2-11b-vision-instruct")
+            or config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b")
         )
 
         self.is_configured = bool(

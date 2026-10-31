@@ -148,7 +148,7 @@ def get_langchain_chat_model(
         resolved_base_url = "https://integrate.api.nvidia.com/v1"
 
     resolved_model = (
-        model or config("LLM_MODEL", default="meta/llama-3.2-11b-vision-instruct")
+        model or config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b")
     )
 
     is_valid_key = bool(
