@@ -456,3 +456,98 @@ class RetrievalAPITests(TestCase):
         self.assertEqual(response.data["mode"], "hybrid")
         self.assertTrue(response.data["reranked"])
         self.assertGreaterEqual(response.data["total_found"], 1)
+
+    def test_metadata_filtering_by_document_id(self):
+        """Metadata filtering scopes search results strictly to requested document."""
+        doc2 = Document.objects.create(
+            tenant=self.tenant,
+            owner=self.user,
+            title="Database Sharding Spec",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
+        text2 = "Database sharding distributes high throughput PostgreSQL tables across clusters."
+        Chunk.objects.create(
+            tenant=self.tenant,
+            document=doc2,
+            position=0,
+            text=text2,
+            embedding=self.embedder.get_embedding(text2),
+        )
+
+        url = reverse("retrieval_search")
+        response = self.client.post(
+            url,
+            {
+                "query": "PostgreSQL database guidelines",
+                "filters": {"document_id": str(doc2.id)},
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for r in response.data["results"]:
+            self.assertEqual(r["document_id"], str(doc2.id))
+            self.assertEqual(r["document_title"], "Database Sharding Spec")
+
+    def test_parent_child_context_window_expansion(self):
+        """Parent-child retrieval expands child chunks with adjacent context."""
+        doc = Document.objects.create(
+            tenant=self.tenant,
+            owner=self.user,
+            title="Multi-Chapter Manual",
+            visibility=Document.Visibility.TENANT,
+            status=Document.Status.READY,
+        )
+        Chunk.objects.create(
+            tenant=self.tenant,
+            document=doc,
+            position=0,
+            text="Chapter 1: Foundations and Background.",
+            embedding=[0.0] * EmbeddingAdapter.DIMENSIONS,
+        )
+        Chunk.objects.create(
+            tenant=self.tenant,
+            document=doc,
+            position=1,
+            text="Chapter 2: Quantum Key Cryptography Specifications.",
+            embedding=[0.1] * EmbeddingAdapter.DIMENSIONS,
+        )
+        Chunk.objects.create(
+            tenant=self.tenant,
+            document=doc,
+            position=2,
+            text="Chapter 3: Production Deployment Checklist.",
+            embedding=[0.0] * EmbeddingAdapter.DIMENSIONS,
+        )
+
+        url = reverse("retrieval_search")
+        response = self.client.post(
+            url,
+            {
+                "query": "Quantum Key Cryptography",
+                "filters": {"document_id": str(doc.id)},
+                "expand_parent": True,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["total_found"], 1)
+        first_result = response.data["results"][0]
+        self.assertIn("parent_text", first_result)
+        self.assertIn("Chapter 1", first_result["parent_text"])
+        self.assertIn("Chapter 2", first_result["parent_text"])
+
+    def test_query_expansion_multi_query_retrieval(self):
+        """Query expansion expands technical acronyms and retrieves relevant documents."""
+        url = reverse("retrieval_search")
+        response = self.client.post(
+            url,
+            {
+                "query": "JWT",
+                "query_expansion": True,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["total_found"], 1)
+        self.assertIn("JWT authentication", response.data["results"][0]["text"])

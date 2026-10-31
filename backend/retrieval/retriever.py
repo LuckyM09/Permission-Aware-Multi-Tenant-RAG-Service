@@ -13,8 +13,9 @@ class VaultRAGRetriever(BaseRetriever):
     """
     LangChain BaseRetriever implementation for VaultRAG.
     Enforces multi-tenant SQL pre-filtering, pgvector cosine search,
-    BM25 sparse search, RRF fusion, and cross-encoder reranking
-    under the standard LangChain retriever interface.
+    BM25 sparse search, RRF fusion, cross-encoder reranking,
+    metadata filtering, parent-child context window expansion,
+    and query expansion under the standard LangChain retriever interface.
     """
 
     user_ctx: Any = Field(description="Tenant-scoped UserContext")
@@ -22,6 +23,9 @@ class VaultRAGRetriever(BaseRetriever):
     threshold: float = Field(default=0.25, description="Similarity threshold cutoff")
     mode: str = Field(default="hybrid", description="hybrid | dense | sparse")
     rerank: bool = Field(default=True, description="Enable cross-encoder reranker")
+    filters: dict[str, Any] = Field(default_factory=dict, description="Metadata pre-filters")
+    expand_parent: bool = Field(default=True, description="Enable parent-child window expansion")
+    query_expansion: bool = Field(default=False, description="Enable multi-query expansion")
     service: Any = Field(default_factory=RetrievalService, description="Underlying RetrievalService")
 
     class Config:
@@ -40,6 +44,9 @@ class VaultRAGRetriever(BaseRetriever):
             threshold=self.threshold,
             mode=self.mode,
             rerank=self.rerank,
+            filters=self.filters,
+            expand_parent=self.expand_parent,
+            query_expansion=self.query_expansion,
         )
 
         lc_docs: List[LCDocument] = []
@@ -47,7 +54,7 @@ class VaultRAGRetriever(BaseRetriever):
             meta = r.get("metadata") or {}
             lc_docs.append(
                 LCDocument(
-                    page_content=r["text"],
+                    page_content=r.get("parent_text") or r["text"],
                     metadata={
                         "chunk_id": r["chunk_id"],
                         "document_id": r["document_id"],
@@ -57,6 +64,8 @@ class VaultRAGRetriever(BaseRetriever):
                         "retrieval_mode": r.get("retrieval_mode", self.mode),
                         "reranked": r.get("reranked", False),
                         "page": meta.get("page", 1),
+                        "parent_text": r.get("parent_text"),
+                        "raw_text": r["text"],
                         "images": meta.get("images", []),
                     },
                 )
@@ -71,6 +80,9 @@ class VaultRAGRetriever(BaseRetriever):
         threshold: float = 0.25,
         mode: str = "hybrid",
         rerank: bool = True,
+        filters: dict[str, Any] | None = None,
+        expand_parent: bool = True,
+        query_expansion: bool = False,
     ) -> "VaultRAGRetriever":
         """Factory method to construct a tenant-safe retriever for a UserContext."""
         return cls(
@@ -79,4 +91,7 @@ class VaultRAGRetriever(BaseRetriever):
             threshold=threshold,
             mode=mode,
             rerank=rerank,
+            filters=filters or {},
+            expand_parent=expand_parent,
+            query_expansion=query_expansion,
         )

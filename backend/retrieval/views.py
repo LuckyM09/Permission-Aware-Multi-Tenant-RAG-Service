@@ -1,5 +1,6 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from accounts.context import get_user_context
@@ -12,11 +13,14 @@ class SearchView(APIView):
     """
     POST /api/v1/retrieval/search/
     Executes a permission-filtered hybrid vector and keyword search across documents.
-    Applies Reciprocal Rank Fusion (RRF) and Cross-Encoder Reranking while strictly
-    enforcing zero data leakage across all retrieval paths.
+    Applies Reciprocal Rank Fusion (RRF), Cross-Encoder Reranking, metadata filtering,
+    parent-child context expansion, and query expansion while strictly enforcing
+    zero data leakage across all retrieval paths.
     """
 
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "search"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -33,6 +37,9 @@ class SearchView(APIView):
         mode = serializer.validated_data.get("mode", "hybrid")
         rerank = serializer.validated_data.get("rerank", True)
         alpha = serializer.validated_data.get("alpha", 0.5)
+        filters = serializer.validated_data.get("filters", {})
+        expand_parent = serializer.validated_data.get("expand_parent", False)
+        query_expansion = serializer.validated_data.get("query_expansion", False)
 
         results = self.retrieval_service.search(
             user_ctx=user_ctx,
@@ -42,6 +49,9 @@ class SearchView(APIView):
             mode=mode,
             rerank=rerank,
             alpha=alpha,
+            filters=filters,
+            expand_parent=expand_parent,
+            query_expansion=query_expansion,
         )
 
         response_data = {

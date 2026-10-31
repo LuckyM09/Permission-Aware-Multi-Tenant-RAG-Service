@@ -10,6 +10,7 @@ from accounts.context import UserContext
 from documents.models import Chunk
 from documents.permissions import get_permitted_chunks_q
 from ingestion.embedder import EmbeddingAdapter
+from retrieval.expansion import QueryExpander
 from retrieval.reranker import RerankerAdapter
 
 
@@ -17,17 +18,19 @@ class RetrievalService:
     """
     Enterprise permission-aware hybrid vector & keyword search engine.
     Guarantees zero data leakage by enforcing tenant and ACL pre-filters
-    on BOTH dense and sparse retrieval paths before Reciprocal Rank Fusion
-    and cross-encoder reranking.
+    on BOTH dense and sparse retrieval paths before Reciprocal Rank Fusion,
+    query expansion, parent-child expansion, and cross-encoder reranking.
     """
 
     def __init__(
         self,
         embedder: EmbeddingAdapter | None = None,
         reranker: RerankerAdapter | None = None,
+        expander: QueryExpander | None = None,
     ):
         self.embedder = embedder or EmbeddingAdapter()
         self.reranker = reranker or RerankerAdapter()
+        self.expander = expander or QueryExpander()
 
     def search(
         self,
@@ -38,6 +41,9 @@ class RetrievalService:
         mode: str = "hybrid",
         rerank: bool = True,
         alpha: float = 0.5,
+        filters: dict[str, Any] | None = None,
+        expand_parent: bool = False,
+        query_expansion: bool = False,
     ) -> list[dict[str, Any]]:
         """
         Executes permission-filtered retrieval across requested modes.
@@ -49,6 +55,9 @@ class RetrievalService:
         :param mode: Search modality: "hybrid", "dense", or "sparse"
         :param rerank: Whether to apply the cross-encoder reranker
         :param alpha: Weight balance between dense (alpha) and sparse (1-alpha) in RRF
+        :param filters: Optional metadata pre-filters (document_id, file_type, date, metadata)
+        :param expand_parent: Whether to expand child chunk to parent window context
+        :param query_expansion: Whether to perform multi-query expansion
         :return: List of ranked and reranked chunk dictionaries
         """
         clean_query = query.strip()
@@ -56,38 +65,48 @@ class RetrievalService:
             return []
 
         # 1. Enforce strict Tenant and ACL Pre-Filtering on ALL query paths
-        base_qs = self._get_acl_scoped_queryset(user_ctx)
+        base_qs = self._get_acl_scoped_queryset(user_ctx, filters=filters)
         if not base_qs.exists():
             return []
 
         # Retrieve a broader candidate pool for fusion and reranking (retrieve wide, rerank narrow)
         candidate_limit = max(top_k * 6, 40)
 
-        # 2. Execute retrieval based on selected mode
-        if mode == "dense":
-            query_vector = self.embedder.get_embedding(clean_query)
-            candidates = self._dense_search(base_qs, query_vector, candidate_limit)
-            for c in candidates:
-                c["retrieval_mode"] = "dense"
+        # 2. Query Expansion (Multi-Query Retrieval) or Single-Query Retrieval
+        query_variations = [clean_query]
+        if query_expansion:
+            query_variations = self.expander.expand_query(clean_query, max_expansions=2)
 
-        elif mode == "sparse":
-            candidates = self._sparse_search(base_qs, clean_query, candidate_limit)
-            for c in candidates:
-                c["retrieval_mode"] = "sparse"
+        multi_query_candidates: list[list[dict[str, Any]]] = []
 
-        else:  # mode == "hybrid"
-            query_vector = self.embedder.get_embedding(clean_query)
-            dense_candidates = self._dense_search(
-                base_qs, query_vector, candidate_limit
-            )
-            sparse_candidates = self._sparse_search(
-                base_qs, clean_query, candidate_limit
-            )
+        for q_text in query_variations:
+            if mode == "dense":
+                query_vector = self.embedder.get_embedding(q_text)
+                cands = self._dense_search(base_qs, query_vector, candidate_limit)
+                for c in cands:
+                    c["retrieval_mode"] = "dense"
+                multi_query_candidates.append(cands)
 
-            # Fuse candidate pools via Reciprocal Rank Fusion (RRF)
-            candidates = self._reciprocal_rank_fusion(
-                dense_candidates, sparse_candidates, alpha=alpha, k=60
-            )
+            elif mode == "sparse":
+                cands = self._sparse_search(base_qs, q_text, candidate_limit)
+                for c in cands:
+                    c["retrieval_mode"] = "sparse"
+                multi_query_candidates.append(cands)
+
+            else:  # mode == "hybrid"
+                query_vector = self.embedder.get_embedding(q_text)
+                dense_cands = self._dense_search(base_qs, query_vector, candidate_limit)
+                sparse_cands = self._sparse_search(base_qs, q_text, candidate_limit)
+                fused = self._reciprocal_rank_fusion(
+                    dense_cands, sparse_cands, alpha=alpha, k=60
+                )
+                multi_query_candidates.append(fused)
+
+        # Fuse candidate pools across query expansions if multiple queries were used
+        if len(multi_query_candidates) == 1:
+            candidates = multi_query_candidates[0]
+        else:
+            candidates = self._multi_query_fusion(multi_query_candidates, k=60)
 
         if not candidates:
             return []
@@ -106,16 +125,65 @@ class RetrievalService:
                 if r.get("score", r.get("similarity", 0.0)) >= threshold
             ]
 
+        # 5. Parent-Child Context Expansion (Small-to-Big Retrieval)
+        if expand_parent and final_results:
+            final_results = self._expand_parent_contexts(final_results, window_size=1)
+
         return final_results
 
-    def _get_acl_scoped_queryset(self, user_ctx: UserContext):
+    def _get_acl_scoped_queryset(
+        self, user_ctx: UserContext, filters: dict[str, Any] | None = None
+    ):
         """
         Constructs the authoritative SQL pre-filter queryset via Single Source of Truth (Rule 4).
-        This filter MUST be applied to both dense and sparse paths.
+        Applies optional metadata filters (document_id, file_type, date range, custom metadata)
+        strictly at the SQL level BEFORE vector/text search.
         """
-        return Chunk.objects.filter(
+        qs = Chunk.objects.filter(
             get_permitted_chunks_q(user_ctx)
-        ).select_related("document").distinct()
+        ).select_related("document")
+
+        if filters:
+            # 1. Document ID(s)
+            doc_id = filters.get("document_id") or filters.get("doc_id")
+            if doc_id:
+                if isinstance(doc_id, (list, tuple, set)):
+                    qs = qs.filter(document_id__in=doc_id)
+                else:
+                    qs = qs.filter(document_id=doc_id)
+
+            doc_ids = filters.get("document_ids")
+            if doc_ids and isinstance(doc_ids, (list, tuple, set)):
+                qs = qs.filter(document_id__in=doc_ids)
+
+            # 2. File type
+            file_type = filters.get("file_type")
+            if file_type:
+                qs = qs.filter(document__file_type=file_type)
+
+            # 3. Visibility
+            visibility = filters.get("visibility")
+            if visibility:
+                qs = qs.filter(document__visibility=visibility)
+
+            # 4. Date ranges
+            created_after = filters.get("created_after") or filters.get("date_from")
+            if created_after:
+                qs = qs.filter(document__created_at__gte=created_after)
+
+            created_before = filters.get("created_before") or filters.get("date_to")
+            if created_before:
+                qs = qs.filter(document__created_at__lte=created_before)
+
+            # 5. Arbitrary key-value metadata lookups
+            meta_filters = filters.get("metadata")
+            if meta_filters and isinstance(meta_filters, dict):
+                for k, v in meta_filters.items():
+                    qs = qs.filter(
+                        Q(**{f"metadata__{k}": v}) | Q(**{f"document__metadata__{k}": v})
+                    )
+
+        return qs.distinct()
 
     def _dense_search(
         self,
@@ -141,6 +209,7 @@ class RetrievalService:
                         "document_id": str(chunk.document_id),
                         "document_title": chunk.document.title,
                         "visibility": chunk.document.visibility,
+                        "position": chunk.position,
                         "text": chunk.text,
                         "distance": round(dist, 4),
                         "similarity": round(sim, 4),
@@ -151,12 +220,17 @@ class RetrievalService:
                 )
             return results
 
-        # Non-postgres fallback
-        chunks = list(base_qs)
+        # In SQLite/Mock fallback: compute cosine distance in Python
+        candidates = list(base_qs[: limit * 3])
         scored = []
-        for chunk in chunks:
-            dist = self._compute_cosine_distance(query_vector, chunk.embedding)
-            sim = max(0.0, min(1.0, 1.0 - dist))
+        for chunk in candidates:
+            chunk_vec = chunk.embedding
+            if chunk_vec and isinstance(chunk_vec, list):
+                dist = self._compute_cosine_distance(query_vector, chunk_vec)
+                sim = max(0.0, min(1.0, 1.0 - dist))
+            else:
+                dist = 0.5
+                sim = 0.5
             scored.append((dist, sim, chunk))
 
         scored.sort(key=lambda x: x[0])
@@ -166,6 +240,7 @@ class RetrievalService:
                 "document_id": str(chunk.document_id),
                 "document_title": chunk.document.title,
                 "visibility": chunk.document.visibility,
+                "position": chunk.position,
                 "text": chunk.text,
                 "distance": round(dist, 4),
                 "similarity": round(sim, 4),
@@ -226,6 +301,7 @@ class RetrievalService:
                             "document_id": str(chunk.document_id),
                             "document_title": chunk.document.title,
                             "visibility": chunk.document.visibility,
+                            "position": chunk.position,
                             "text": chunk.text,
                             "distance": round(1.0 - sim, 4),
                             "similarity": sim,
@@ -259,6 +335,7 @@ class RetrievalService:
                 "document_id": str(chunk.document_id),
                 "document_title": chunk.document.title,
                 "visibility": chunk.document.visibility,
+                "position": chunk.position,
                 "text": chunk.text,
                 "distance": round(1.0 - sc, 4),
                 "similarity": sc,
@@ -312,7 +389,6 @@ class RetrievalService:
         for cid in sorted_cids:
             cand = dict(chunk_map[cid])
             rrf_raw = fused_scores[cid]
-            # Normalize RRF score to 0.0 - 1.0 range
             norm_score = round(min(0.99, rrf_raw * (k + 1)), 4)
             cand["rrf_score"] = norm_score
             cand["score"] = norm_score
@@ -322,6 +398,104 @@ class RetrievalService:
             results.append(cand)
 
         return results
+
+    def _multi_query_fusion(
+        self,
+        multi_candidates: list[list[dict[str, Any]]],
+        k: int = 60,
+    ) -> list[dict[str, Any]]:
+        """
+        Merges multiple ranked lists from query expansion into a consolidated candidate pool.
+        """
+        fused_scores: dict[str, float] = {}
+        chunk_map: dict[str, dict[str, Any]] = {}
+        weight_per_query = 1.0 / max(1, len(multi_candidates))
+
+        for cand_list in multi_candidates:
+            for rank, cand in enumerate(cand_list):
+                cid = cand["chunk_id"]
+                if cid not in chunk_map:
+                    chunk_map[cid] = cand
+                fused_scores[cid] = fused_scores.get(cid, 0.0) + (
+                    weight_per_query / (k + rank + 1)
+                )
+
+        sorted_cids = sorted(
+            fused_scores.keys(), key=lambda cid: fused_scores[cid], reverse=True
+        )
+
+        results = []
+        for cid in sorted_cids:
+            cand = dict(chunk_map[cid])
+            norm_score = round(min(0.99, fused_scores[cid] * (k + 1)), 4)
+            cand["score"] = norm_score
+            cand["similarity"] = norm_score
+            results.append(cand)
+
+        return results
+
+    def _expand_parent_contexts(
+        self, candidates: list[dict[str, Any]], window_size: int = 1
+    ) -> list[dict[str, Any]]:
+        """
+        Parent-Child Retrieval (Small-to-Big Retrieval Window Expansion).
+        For each retrieved child chunk, looks up immediate preceding and succeeding
+        adjacent chunks (position - 1, position + 1) in the same parent document.
+        Assembles a coherent parent_text context window so the LLM receives full narrative
+        continuity without embedding dilution.
+        """
+        if not candidates:
+            return []
+
+        doc_positions: dict[str, set[int]] = {}
+        for c in candidates:
+            doc_id = c.get("document_id")
+            pos = c.get("position")
+            if pos is None:
+                pos = c.get("metadata", {}).get("position")
+
+            if doc_id and pos is not None:
+                needed = set(range(max(0, pos - window_size), pos + window_size + 1))
+                doc_positions.setdefault(doc_id, set()).update(needed)
+
+        if not doc_positions:
+            return candidates
+
+        q_or = Q()
+        for doc_id, positions in doc_positions.items():
+            q_or |= Q(document_id=doc_id, position__in=positions)
+
+        sibling_chunks = {
+            (str(ch.document_id), ch.position): ch.text
+            for ch in Chunk.objects.filter(q_or).only(
+                "id", "document_id", "position", "text"
+            )
+        }
+
+        expanded_candidates = []
+        for c in candidates:
+            item = dict(c)
+            doc_id = c.get("document_id")
+            pos = c.get("position")
+            if pos is None:
+                pos = c.get("metadata", {}).get("position")
+
+            if doc_id and pos is not None:
+                parent_parts = []
+                for p in range(max(0, pos - window_size), pos + window_size + 1):
+                    sibling_text = sibling_chunks.get((doc_id, p))
+                    if sibling_text and sibling_text not in parent_parts:
+                        parent_parts.append(sibling_text)
+
+                item["parent_text"] = (
+                    "\n\n".join(parent_parts) if parent_parts else c["text"]
+                )
+            else:
+                item["parent_text"] = c["text"]
+
+            expanded_candidates.append(item)
+
+        return expanded_candidates
 
     @staticmethod
     def _compute_cosine_distance(vec_a: list[float], vec_b: list[float]) -> float:

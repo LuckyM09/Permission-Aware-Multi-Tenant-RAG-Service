@@ -72,8 +72,8 @@ class ContextAssembler:
         for chunk in chunks:
             if hasattr(chunk, "page_content"):
                 # LangChain Document
-                raw_text = getattr(chunk, "page_content", "")
                 meta = getattr(chunk, "metadata", {}) or {}
+                raw_text = meta.get("parent_text") or getattr(chunk, "page_content", "")
                 chunk_id = meta.get("chunk_id", "")
                 doc_title = meta.get("document_title", "Untitled Document")
                 doc_id = meta.get("document_id", "")
@@ -82,7 +82,7 @@ class ContextAssembler:
                 similarity = meta.get("similarity", 0.0)
             else:
                 # Raw dictionary
-                raw_text = chunk.get("text", "")
+                raw_text = chunk.get("parent_text") or chunk.get("text", "")
                 chunk_id = chunk.get("chunk_id", "")
                 doc_title = chunk.get("document_title", "Untitled Document")
                 doc_id = chunk.get("document_id", "")

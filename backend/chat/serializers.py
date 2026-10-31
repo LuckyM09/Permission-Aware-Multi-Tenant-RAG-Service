@@ -79,3 +79,18 @@ class ChatQuerySerializer(serializers.Serializer):
         default=False,
         help_text="If True, streams response as text/event-stream (SSE)",
     )
+    filters = serializers.DictField(
+        required=False,
+        default=dict,
+        help_text="Metadata pre-filters (document_id, file_type, date, etc.)",
+    )
+    expand_parent = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text="Whether to expand child chunk to parent window context",
+    )
+    query_expansion = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether to perform multi-query expansion",
+    )

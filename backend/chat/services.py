@@ -83,6 +83,9 @@ class ChatService:
         threshold: float = 0.25,
         mode: str = "hybrid",
         rerank: bool = True,
+        filters: dict[str, Any] | None = None,
+        expand_parent: bool = True,
+        query_expansion: bool = False,
     ) -> dict[str, Any]:
         """
         Synchronous RAG generation turn powered by LangChain LCEL.
@@ -108,6 +111,9 @@ class ChatService:
             threshold=threshold,
             mode=mode,
             rerank=rerank,
+            filters=filters or {},
+            expand_parent=expand_parent,
+            query_expansion=query_expansion,
             service=self.retrieval,
         )
         retrieved_docs = retriever.invoke(query)
@@ -195,6 +201,9 @@ class ChatService:
         threshold: float = 0.25,
         mode: str = "hybrid",
         rerank: bool = True,
+        filters: dict[str, Any] | None = None,
+        expand_parent: bool = True,
+        query_expansion: bool = False,
     ) -> Iterator[str]:
         """
         SSE Streaming generator for real-time token delivery to the client via LangChain LCEL.
@@ -219,6 +228,9 @@ class ChatService:
             threshold=threshold,
             mode=mode,
             rerank=rerank,
+            filters=filters or {},
+            expand_parent=expand_parent,
+            query_expansion=query_expansion,
             service=self.retrieval,
         )
         retrieved_docs = retriever.invoke(query)

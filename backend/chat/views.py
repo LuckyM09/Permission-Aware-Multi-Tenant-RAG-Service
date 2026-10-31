@@ -16,35 +16,26 @@ from .services import ChatService
 
 class ConversationListCreateView(APIView):
     """
-    List or create persistent conversation threads for the authenticated user and tenant.
+    List user conversation threads or create a new thread.
     """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         user_ctx = get_user_context(request)
-        if not user_ctx.tenant_id:
-            return Response(
-                {"detail": "No active tenant context."},
-                status=status.HTTP_400_BAD_REQUEST,
+        conversations = (
+            Conversation.objects.filter(
+                tenant_id=user_ctx.tenant_id,
+                user_id=user_ctx.user_id,
             )
-
-        conversations = Conversation.objects.filter(
-            tenant_id=user_ctx.tenant_id,
-            user_id=user_ctx.user_id,
-        ).order_by("-updated_at")
-
+            .prefetch_related("messages")
+            .order_by("-updated_at")
+        )
         serializer = ConversationListSerializer(conversations, many=True)
         return Response(serializer.data)
 
     def post(self, request):
         user_ctx = get_user_context(request)
-        if not user_ctx.tenant_id:
-            return Response(
-                {"detail": "No active tenant context."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         title = request.data.get("title", "New Conversation")
         conversation = Conversation.objects.create(
             tenant_id=user_ctx.tenant_id,
@@ -100,6 +91,7 @@ class ChatMessageView(APIView):
     """
     Executes permission-filtered RAG chat generation.
     Supports both standard JSON delivery and SSE streaming (stream=True).
+    Supports metadata filters, parent-child context expansion, and query expansion.
     """
 
     permission_classes = [permissions.IsAuthenticated]
@@ -130,6 +122,9 @@ class ChatMessageView(APIView):
                 threshold=data.get("threshold", 0.0),
                 mode=data.get("mode", "hybrid"),
                 rerank=data.get("rerank", True),
+                filters=data.get("filters", {}),
+                expand_parent=data.get("expand_parent", True),
+                query_expansion=data.get("query_expansion", False),
             )
             response = StreamingHttpResponse(
                 event_stream, content_type="text/event-stream"
@@ -148,5 +143,8 @@ class ChatMessageView(APIView):
             threshold=data.get("threshold", 0.0),
             mode=data.get("mode", "hybrid"),
             rerank=data.get("rerank", True),
+            filters=data.get("filters", {}),
+            expand_parent=data.get("expand_parent", True),
+            query_expansion=data.get("query_expansion", False),
         )
         return Response(result, status=status.HTTP_200_OK)

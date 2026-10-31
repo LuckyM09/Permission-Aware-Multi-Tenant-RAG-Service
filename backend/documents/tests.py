@@ -108,6 +108,28 @@ class IngestionEngineTests(TestCase):
         self.assertEqual(chunks[0].position, 0)
         self.assertIn("Paragraph one", chunks[0].text)
 
+    def test_structure_aware_chunker_section_breadcrumbs(self):
+        """Test that structure-aware chunker tracks heading hierarchy and section breadcrumbs."""
+        structured_doc = (
+            "# Enterprise Security Guidelines\n\n"
+            "Overview of global corporate security directives.\n\n"
+            "## Cryptography and Key Management\n\n"
+            "### Database Encryption\n\n"
+            "All PostgreSQL tables must enforce AES-256 transparent column encryption at rest.\n\n"
+            "| Component | Standard |\n"
+            "| --- | --- |\n"
+            "| Storage | AES-256 |\n"
+        )
+        chunker = RecursiveTextChunker(chunk_size=150, chunk_overlap=30)
+        chunks = chunker.split_text(structured_doc)
+        self.assertGreater(len(chunks), 1)
+        has_breadcrumb = any(
+            "Enterprise Security Guidelines" in c.section_header
+            or "Cryptography and Key Management" in c.section_header
+            for c in chunks
+        )
+        self.assertTrue(has_breadcrumb)
+
     def test_embedding_adapter_dimensions_and_normalization(self):
         """Test embedding adapter returns normalized 2048-dimensional unit vectors."""
         adapter = EmbeddingAdapter()

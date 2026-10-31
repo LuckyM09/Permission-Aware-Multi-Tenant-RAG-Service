@@ -43,6 +43,21 @@ class SearchRequestSerializer(serializers.Serializer):
         max_value=1.0,
         help_text="Dense vs sparse weight balance in hybrid mode (0.0 to 1.0)",
     )
+    filters = serializers.DictField(
+        required=False,
+        default=dict,
+        help_text="Metadata pre-filters (e.g. document_id, file_type, date_from, custom metadata)",
+    )
+    expand_parent = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether to expand child chunk with parent context window",
+    )
+    query_expansion = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text="Whether to execute multi-query expansion via RRF",
+    )
 
 
 class SearchResultItemSerializer(serializers.Serializer):
@@ -52,13 +67,15 @@ class SearchResultItemSerializer(serializers.Serializer):
     document_id = serializers.UUIDField()
     document_title = serializers.CharField()
     visibility = serializers.CharField()
+    position = serializers.IntegerField(required=False)
     text = serializers.CharField()
+    parent_text = serializers.CharField(required=False, allow_blank=True)
     distance = serializers.FloatField()
     similarity = serializers.FloatField()
     score = serializers.FloatField(required=False)
     retrieval_mode = serializers.CharField(required=False, default="hybrid")
     reranked = serializers.BooleanField(required=False, default=False)
-    metadata = serializers.DictField()
+    metadata = serializers.DictField(required=False, default=dict)
 
 
 class SearchResponseSerializer(serializers.Serializer):

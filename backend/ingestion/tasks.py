@@ -92,6 +92,7 @@ def ingest_document_task(self, document_id: str):
                             "char_start": tc.char_start,
                             "char_end": tc.char_end,
                             "page": chunk_page,
+                            **(getattr(tc, "metadata", {}) or {}),
                         },
                     )
                 )
