@@ -49,7 +49,7 @@ class EmbeddingAdapter:
             self.api_key
             and not self.api_key.startswith("your_")
             and len(self.api_key) > 10
-            and "test" not in sys.argv
+            and not any(arg in sys.argv for arg in ["test", "run_ragas_eval"])
         )
 
         if self.is_configured:

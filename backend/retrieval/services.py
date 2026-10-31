@@ -483,7 +483,7 @@ class RetrievalService:
             if doc_id and pos is not None:
                 parent_parts = []
                 for p in range(max(0, pos - window_size), pos + window_size + 1):
-                    sibling_text = sibling_chunks.get((doc_id, p))
+                    sibling_text = sibling_chunks.get((str(doc_id), p))
                     if sibling_text and sibling_text not in parent_parts:
                         parent_parts.append(sibling_text)
 
