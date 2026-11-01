@@ -89,6 +89,16 @@ class AdversarialLeakageTestSuite(TestCase):
             content="Super secret personal credentials: Master Key 99482-CLASSIFIED.",
         )
 
+    def tearDown(self):
+        if connection.vendor == "postgresql":
+            try:
+                with connection.cursor() as cursor:
+                    cursor.execute("RESET ROLE;")
+                    cursor.execute("SELECT set_config('app.tenant_id', '', true);")
+            except Exception:
+                pass
+        super().tearDown()
+
     def _create_doc_with_chunk(
         self,
         tenant: Tenant,
@@ -467,16 +477,37 @@ class AdversarialLeakageTestSuite(TestCase):
             self.skipTest("PostgreSQL RLS verification skipped in SQLite test environment.")
 
         with connection.cursor() as cursor:
-            # Set session to Tenant B
-            cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_b.id)])
+            # Switch to non-superuser application role where RLS is enforced
+            cursor.execute("SET ROLE vaultrag_user;")
+            try:
+                # 1. Tenant A session can see Tenant A chunks
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_a.id)])
+                cursor.execute("SELECT COUNT(*) FROM documents_chunk;")
+                tenant_a_chunks = cursor.fetchone()[0]
+                self.assertGreaterEqual(
+                    tenant_a_chunks,
+                    3,
+                    "PostgreSQL RLS error: Tenant A chunks should be visible to Tenant A session.",
+                )
 
-            # Query Chunk table directly without application-level WHERE clause
-            cursor.execute("SELECT COUNT(*) FROM documents_chunk;")
-            visible_chunks = cursor.fetchone()[0]
+                # 2. Set session to Tenant B — Tenant A chunks must be invisible
+                cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_b.id)])
+                cursor.execute("SELECT COUNT(*) FROM documents_chunk;")
+                tenant_b_chunks = cursor.fetchone()[0]
+                self.assertEqual(
+                    tenant_b_chunks,
+                    0,
+                    "PostgreSQL RLS breach: Tenant B session can see Tenant A chunk rows!",
+                )
 
-            # In Tenant B, chunks belonging to Tenant A must be invisible to RLS
-            self.assertEqual(
-                visible_chunks,
-                0,
-                "PostgreSQL RLS breach: Tenant B session can see Tenant A chunk rows!",
-            )
+                # 3. Clear session context — MUST return ZERO rows under FORCE RLS
+                cursor.execute("SELECT set_config('app.tenant_id', '', true);")
+                cursor.execute("SELECT COUNT(*) FROM documents_chunk;")
+                no_context_chunks = cursor.fetchone()[0]
+                self.assertEqual(
+                    no_context_chunks,
+                    0,
+                    "PostgreSQL RLS breach: Unauthenticated session can see chunk rows!",
+                )
+            finally:
+                cursor.execute("RESET ROLE;")
