@@ -23,7 +23,7 @@
 - [x] **Phase 7: Adversarial Testing Suite & RAGAS Evaluation (M7)** *(COMPLETED)*
   - 12-category automated adversarial leakage test suite (cross-tenant, cross-group, IDOR, prompt injection).
   - RAGAS evaluation metrics report (faithfulness, context precision, answer relevance).
-- [ ] **Phase 8: Production Readiness & Observability (M8)** *(NEXT)*
+- [x] **Phase 8: Production Readiness & Observability (M8)** *(COMPLETED)*
   - Multi-stage non-root Dockerfiles, security headers, rate limiting, Sentry error tracking, health check endpoints.
-- [ ] **Phase 9: Documentation & Portfolio Showcase (M9)**
+- [x] **Phase 9: Documentation & Portfolio Showcase (M9)** *(COMPLETED)*
   - System architecture diagram, design ADRs, benchmark results, scripted demo walkthrough.
