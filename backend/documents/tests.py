@@ -10,6 +10,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.middleware import set_tenant_db_context
+from accounts.tokens import create_token_for_user
 from documents.models import Chunk, Document, DocumentPermission
 from ingestion.chunker import RecursiveTextChunker
 from ingestion.embedder import EmbeddingAdapter
@@ -267,6 +268,7 @@ class DocumentAPITests(TestCase):
         )
 
         # Verify document status in DB
+        set_tenant_db_context(str(self.tenant.id))
         doc = Document.objects.get(id=response.data["document"]["id"])
         self.assertEqual(doc.status, Document.Status.READY)
         self.assertGreater(doc.chunk_count, 0)
@@ -331,6 +333,7 @@ class DocumentAPITests(TestCase):
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        set_tenant_db_context(str(self.tenant.id))
         self.assertTrue(Document.objects.filter(id=doc.id).exists())
 
     def test_delete_document_success_and_audit_logging(self):
@@ -376,6 +379,7 @@ class DocumentAPITests(TestCase):
                 format="multipart",
             )
         self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+        set_tenant_db_context(str(self.tenant.id))
         doc1 = Document.objects.get(id=res1.data["document"]["id"])
         self.assertEqual(doc1.status, Document.Status.READY)
         self.assertGreater(doc1.chunk_count, 0)
@@ -390,6 +394,7 @@ class DocumentAPITests(TestCase):
         )
         self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
         self.assertTrue(res2.data["deduplicated"])
+        set_tenant_db_context(str(self.tenant.id))
         doc2 = Document.objects.get(id=res2.data["document"]["id"])
         self.assertEqual(doc2.status, Document.Status.READY)
         # Chunks must be cloned so doc2 has active chunks
@@ -464,6 +469,9 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
         self.user_a = User.objects.create_user(email="user@alpha.com", password="password")
         self.user_b = User.objects.create_user(email="user@beta.com", password="password")
 
+        Membership.objects.create(tenant=self.tenant_a, user=self.user_a, role=Role.MEMBER, is_default=True)
+        Membership.objects.create(tenant=self.tenant_b, user=self.user_b, role=Role.MEMBER, is_default=True)
+
         # Temporarily set context to create documents
         with connection.cursor() as cursor:
             cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(self.tenant_a.id)])
@@ -537,10 +545,11 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
             self.skipTest("Row-Level Security tests require PostgreSQL.")
 
         client = APIClient()
+        url_list = reverse("document_list_create")
 
-        # 1. Tenant Alpha User makes HTTP GET request to /api/documents/
-        token_a = self.get_jwt_for_user(self.user_a, self.tenant_a)
-        response_a = client.get("/api/documents/", HTTP_AUTHORIZATION=f"Bearer {token_a}")
+        # 1. Tenant Alpha User makes HTTP GET request to list documents
+        token_a = create_token_for_user(self.user_a, self.tenant_a.id, role="member")
+        response_a = client.get(url_list, HTTP_AUTHORIZATION=f"Bearer {token_a}")
         self.assertEqual(response_a.status_code, status.HTTP_200_OK)
         docs_a = response_a.json()
 
@@ -549,9 +558,9 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
         self.assertEqual(docs_a[0]["title"], "Alpha Strategy.pdf")
         self.assertEqual(docs_a[0]["id"], str(self.doc_a.id))
 
-        # 2. Tenant Beta User makes HTTP GET request to /api/documents/
-        token_b = self.get_jwt_for_user(self.user_b, self.tenant_b)
-        response_b = client.get("/api/documents/", HTTP_AUTHORIZATION=f"Bearer {token_b}")
+        # 2. Tenant Beta User makes HTTP GET request to list documents
+        token_b = create_token_for_user(self.user_b, self.tenant_b.id, role="member")
+        response_b = client.get(url_list, HTTP_AUTHORIZATION=f"Bearer {token_b}")
         self.assertEqual(response_b.status_code, status.HTTP_200_OK)
         docs_b = response_b.json()
 
@@ -561,8 +570,9 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
         self.assertEqual(docs_b[0]["id"], str(self.doc_b.id))
 
         # 3. Direct access across tenant boundary returns 404 (zero enumeration)
+        url_detail_a = reverse("document_detail", kwargs={"pk": self.doc_a.id})
         cross_tenant_detail = client.get(
-            f"/api/documents/{self.doc_a.id}/",
+            url_detail_a,
             HTTP_AUTHORIZATION=f"Bearer {token_b}",
         )
         self.assertEqual(cross_tenant_detail.status_code, status.HTTP_404_NOT_FOUND)

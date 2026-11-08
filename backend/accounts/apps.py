@@ -10,6 +10,7 @@ def check_postgres_rls_role(app_configs, **kwargs):
     Superusers inherently bypass PostgreSQL Row-Level Security, invalidating the anti-leak guarantee.
     """
     import sys
+
     from decouple import config
 
     # Schema migration runners or privileged maintenance commands may explicitly allow admin role
@@ -68,6 +69,7 @@ class AccountsConfig(AppConfig):
         Validates that the connected PostgreSQL role does not possess SUPERUSER or BYPASSRLS privileges.
         """
         import sys
+
         from decouple import config
 
         # Avoid executing DB check during static collection, help, or migrations

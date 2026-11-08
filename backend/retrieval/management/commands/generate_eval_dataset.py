@@ -1,12 +1,11 @@
 import json
 import logging
 from pathlib import Path
-from typing import Any
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from documents.models import Chunk, Document
-from tenants.models import Tenant
+
+from documents.models import Chunk
 
 logger = logging.getLogger(__name__)
 

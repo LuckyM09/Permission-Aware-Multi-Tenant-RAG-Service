@@ -93,7 +93,9 @@ class AuditServiceAndAPITests(TestCase):
         self.assertNotIn("Tenant B", results[0]["query_text_sanitized"])
 
     def test_audit_api_denied_for_non_admins(self):
-        token_member = create_token_for_user(self.user_a, self.tenant_a.id, role="member")
+        member_user = User.objects.create_user(email="member_bob@tenanta.com", password="password123")
+        Membership.objects.create(user=member_user, tenant=self.tenant_a, role=Role.MEMBER)
+        token_member = create_token_for_user(member_user, self.tenant_a.id, role="member")
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token_member}")
 
         res = self.client.get("/api/v1/audit/logs/")

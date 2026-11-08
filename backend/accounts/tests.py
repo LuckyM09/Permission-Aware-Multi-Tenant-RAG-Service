@@ -204,11 +204,21 @@ class TenantContextMiddlewareTests(TestCase):
         factory = RequestFactory()
         request = factory.get("/api/auth/me/", HTTP_AUTHORIZATION=f"Bearer {token}")
 
-        middleware = TenantContextMiddleware(lambda req: None)
+        captured = []
+
+        def capture_view(req):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT current_setting('app.tenant_id', true);")
+                captured.append(cursor.fetchone()[0])
+            return None
+
+        middleware = TenantContextMiddleware(capture_view)
         middleware(request)
+
+        self.assertEqual(len(captured), 1)
+        self.assertEqual(captured[0], str(tenant.id))
 
         with connection.cursor() as cursor:
             cursor.execute("SELECT current_setting('app.tenant_id', true);")
-            current = cursor.fetchone()[0]
-
-        self.assertEqual(current, str(tenant.id))
+            after = cursor.fetchone()[0]
+        self.assertEqual(after, "")

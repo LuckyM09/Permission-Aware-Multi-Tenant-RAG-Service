@@ -118,7 +118,7 @@ class TenantRegistrationView(APIView):
                 is_active=True,
             )
 
-            membership = Membership.objects.create(
+            Membership.objects.create(
                 tenant=tenant,
                 user=user,
                 role=Role.ADMIN,

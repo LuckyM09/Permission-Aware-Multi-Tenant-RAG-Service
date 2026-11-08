@@ -6,8 +6,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from django.conf import settings
-
 from accounts.context import UserContext
 from accounts.middleware import set_tenant_db_context
 from accounts.models import User

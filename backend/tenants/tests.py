@@ -8,8 +8,8 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from documents.models import Chunk, Document, DocumentPermission
 from accounts.middleware import set_tenant_db_context
+from documents.models import Chunk, Document, DocumentPermission
 
 from .models import Group, GroupMember, Membership, Role, Tenant
 

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -95,9 +96,6 @@ def get_user_context(request: Request) -> UserContext:
         role=membership.role,
         group_ids=group_ids,
     )
-
-
-from contextlib import contextmanager
 
 
 @contextmanager

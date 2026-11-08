@@ -47,7 +47,7 @@ def apply_rls(apps, schema_editor):
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO vaultrag_user;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO vaultrag_user;
         EXCEPTION WHEN OTHERS THEN
-            RAISE WARNING 'RLS role grant notice: %', SQLERRM;
+            RAISE WARNING 'RLS role grant notice: %%', SQLERRM;
         END $$;
     """)
 

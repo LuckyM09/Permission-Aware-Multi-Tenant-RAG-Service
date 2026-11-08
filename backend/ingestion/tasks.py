@@ -76,8 +76,6 @@ def ingest_document_task(self, document_id: str, tenant_id: str | None = None):
 
         # 5. Transactionally insert chunks & update document status to READY
         with transaction.atomic():
-            from accounts.middleware import set_tenant_db_context
-
             set_tenant_db_context(document.tenant_id)
 
             # Purge existing chunks for idempotency
