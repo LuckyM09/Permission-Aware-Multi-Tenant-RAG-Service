@@ -1,7 +1,7 @@
 # VaultRAG — Security & Retrieval Evaluation Report
 
-> **Evaluation Benchmark Date:** 2026-11-06 01:49:42 UTC  
-> **Evaluation Scope:** 200 permuted evaluation queries (40 distinct architectural question variations evaluated across 5 security personas on an enterprise benchmark corpus) plus 12 targeted cross-tenant adversarial injection suites.  
+> **Evaluation Benchmark Date:** 2026-11-09 01:26:10 UTC  
+> **Evaluation Scope:** 200 Evaluated Queries across Permissions, Faithfulness, Correctness, Recall, Precision, and Relevance.  
 
 ---
 
@@ -11,14 +11,14 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **Data Leakage Rate** | 0.0% | 0.0% | **`0.00%`** (`0` leaks) | **PASS (Zero Leakage)** |
 | **Citation Shield Accuracy** | 100% | 100% | **`100.0%`** | **PASS** |
-| **Faithfulness (Groundedness)** | $\ge 0.80$ | $\ge 0.85$ | **`0.9771`** | **PASS** |
-| **Answer Correctness** | $\ge 0.75$ | $\ge 0.85$ | **`0.8828`** | **PASS** |
-| **Context Recall** | $\ge 0.75$ | $\ge 0.80$ | **`0.9109`** | **PASS** |
-| **Context Precision** | $\ge 0.70$ | $\ge 0.80$ | **`0.9300`** | **PASS** |
-| **Answer Relevance** | $\ge 0.85$ | $\ge 0.90$ | **`0.9077`** | **PASS** |
-| **Median Latency (p50)** | < 50 ms | < 50 ms | **`13.24 ms`** | **PASS** |
-| **Tail Latency (p95)** | < 100 ms | < 100 ms | **`25.12 ms`** | **PASS** |
-| **Pre-Filter Overhead** | < 20 ms | < 15 ms | **`8.16 ms`** | **PASS** |
+| **Faithfulness (Groundedness)** | $\ge 0.80$ | $\ge 0.85$ | **`0.8615`** | **PASS** |
+| **Answer Correctness** | $\ge 0.75$ | $\ge 0.85$ | **`0.9257`** | **PASS** |
+| **Context Recall** | $\ge 0.75$ | $\ge 0.80$ | **`0.8709`** | **PASS** |
+| **Context Precision** | $\ge 0.70$ | $\ge 0.80$ | **`0.8900`** | **PASS** |
+| **Answer Relevance** | $\ge 0.85$ | $\ge 0.90$ | **`0.8651`** | **PASS** |
+| **Median Latency (p50)** | < 50 ms | < 50 ms | **`354.04 ms`** | **REVIEW** |
+| **Tail Latency (p95)** | < 100 ms | < 100 ms | **`541.10 ms`** | **REVIEW** |
+| **Pre-Filter Overhead** | < 20 ms | < 15 ms | **`2.47 ms`** | **PASS** |
 
 ---
 
@@ -47,30 +47,30 @@
 | Cross-Group Forbidden (Carol (HR)) | `Under what conditions does the Horizonta...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Engineering Permitted (Admin) | `Under what conditions does the Horizonta...` | `0.84` | `0.88` | `0.97` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `Under what conditions does the Horizonta...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Engineering Permitted (Alice (Eng)) | `What mutual TLS mode is enforced by the ...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Engineering Permitted (Alice (Eng)) | `What mutual TLS mode is enforced by the ...` | `1.00` | `0.90` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Group Forbidden (Bob (Finance)) | `What mutual TLS mode is enforced by the ...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Group Forbidden (Carol (HR)) | `What mutual TLS mode is enforced by the ...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Engineering Permitted (Admin) | `What mutual TLS mode is enforced by the ...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Engineering Permitted (Admin) | `What mutual TLS mode is enforced by the ...` | `1.00` | `0.90` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `What mutual TLS mode is enforced by the ...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Engineering Permitted (Alice (Eng)) | `How are pod health checks configured for...` | `0.96` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Bob (Finance)) | `How are pod health checks configured for...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Carol (HR)) | `How are pod health checks configured for...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Engineering Permitted (Admin) | `How are pod health checks configured for...` | `0.96` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Engineering Permitted (Alice (Eng)) | `How are pod health checks configured for...` | `0.77` | `0.73` | `1.00` | `1.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Bob (Finance)) | `How are pod health checks configured for...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Carol (HR)) | `How are pod health checks configured for...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
+| Engineering Permitted (Admin) | `How are pod health checks configured for...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `How are pod health checks configured for...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Group Forbidden (Alice (Eng)) | `What is the Q3 executive bonus percentag...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Finance Permitted (Bob (Finance)) | `What is the Q3 executive bonus percentag...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Finance Permitted (Bob (Finance)) | `What is the Q3 executive bonus percentag...` | `0.96` | `0.91` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Group Forbidden (Carol (HR)) | `What is the Q3 executive bonus percentag...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Finance Permitted (Admin) | `What is the Q3 executive bonus percentag...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `What is the Q3 executive bonus percentag...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Alice (Eng)) | `What is the maximum travel budget cap fo...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Alice (Eng)) | `What is the maximum travel budget cap fo...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
 | Finance Permitted (Bob (Finance)) | `What is the maximum travel budget cap fo...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Carol (HR)) | `What is the maximum travel budget cap fo...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Carol (HR)) | `What is the maximum travel budget cap fo...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
 | Finance Permitted (Admin) | `What is the maximum travel budget cap fo...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `What is the maximum travel budget cap fo...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Alice (Eng)) | `When is pre-approval required for travel...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Finance Permitted (Bob (Finance)) | `When is pre-approval required for travel...` | `1.00` | `0.75` | `0.78` | `1.00` | `0` | **PASSED** |
-| Cross-Group Forbidden (Carol (HR)) | `When is pre-approval required for travel...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Finance Permitted (Admin) | `When is pre-approval required for travel...` | `1.00` | `0.75` | `0.78` | `1.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Alice (Eng)) | `When is pre-approval required for travel...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
+| Finance Permitted (Bob (Finance)) | `When is pre-approval required for travel...` | `0.71` | `0.48` | `0.78` | `1.00` | `0` | **PASSED** |
+| Cross-Group Forbidden (Carol (HR)) | `When is pre-approval required for travel...` | `0.00` | `1.00` | `0.00` | `0.00` | `0` | **PASSED** |
+| Finance Permitted (Admin) | `When is pre-approval required for travel...` | `0.71` | `0.48` | `0.78` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `When is pre-approval required for travel...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Group Forbidden (Alice (Eng)) | `How much capital expenditure is allocate...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Finance Permitted (Bob (Finance)) | `How much capital expenditure is allocate...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
@@ -78,23 +78,17 @@
 | Finance Permitted (Admin) | `How much capital expenditure is allocate...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `How much capital expenditure is allocate...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Human Resources Permitted (Alice (Eng)) | `How many paid annual leave days do full-...` | `1.00` | `0.80` | `1.00` | `1.00` | `0` | **PASSED** |
-| Human Resources Permitted (Bob (Finance)) | `How many paid annual leave days do full-...` | `1.00` | `0.80` | `1.00` | `1.00` | `0` | **PASSED** |
-| Human Resources Permitted (Carol (HR)) | `How many paid annual leave days do full-...` | `1.00` | `0.80` | `1.00` | `1.00` | `0` | **PASSED** |
-| Human Resources Permitted (Admin) | `How many paid annual leave days do full-...` | `1.00` | `0.80` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Bob (Finance)) | `How many paid annual leave days do full-...` | `0.86` | `0.71` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Carol (HR)) | `How many paid annual leave days do full-...` | `0.86` | `0.71` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Admin) | `How many paid annual leave days do full-...` | `0.86` | `0.71` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `How many paid annual leave days do full-...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
-| Human Resources Permitted (Alice (Eng)) | `What is the monthly wellness reimburseme...` | `1.00` | `0.00` | `0.00` | `0.00` | `0` | **FAILED** |
-| Human Resources Permitted (Bob (Finance)) | `What is the monthly wellness reimburseme...` | `1.00` | `0.00` | `0.00` | `0.00` | `0` | **FAILED** |
-| Human Resources Permitted (Carol (HR)) | `What is the monthly wellness reimburseme...` | `1.00` | `0.00` | `0.00` | `0.00` | `0` | **FAILED** |
-| Human Resources Permitted (Admin) | `What is the monthly wellness reimburseme...` | `1.00` | `0.00` | `0.00` | `0.00` | `0` | **FAILED** |
+| Human Resources Permitted (Alice (Eng)) | `What is the monthly wellness reimburseme...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Bob (Finance)) | `What is the monthly wellness reimburseme...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Carol (HR)) | `What is the monthly wellness reimburseme...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
+| Human Resources Permitted (Admin) | `What is the monthly wellness reimburseme...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 | Cross-Tenant Forbidden (Mallory (Attacker)) | `What is the monthly wellness reimburseme...` | `1.00` | `1.00` | `1.00` | `1.00` | `0` | **PASSED** |
 
 *(Showing 50 of 200 total benchmark test runs. Full record available in JSON logs.)*
-
-> **Transparent Engineering Analysis on Benchmark Scope & Methodology:**
-> - **Vocabulary Mismatch Analysis:** In the baseline query set, the query *"What is the monthly wellness reimbursement stipend amount?"* failed recall because the corpus document was phrased as *"Wellness stipend"* rather than *"reimbursement"*, demonstrating why pure lexical search fails across synonyms.
-> - **Zero-Leakage Invariant:** Across both successful and missed queries, the data leakage rate was strictly **0.00%** (`0` leaks across all 200 runs and 12 adversarial probes).
-> - **Live Model Regeneration:** Automated benchmark evaluation is continuously runnable via `python backend/manage.py run_ragas_eval`. With live `NVIDIA_API_KEY` configured in `.env`, dense vector search (2,048-dim Nemotron embeddings) and Reciprocal Rank Fusion bridge cross-vocabulary gaps in real time.
-> - **Latency Breakdown:** The internal median pipeline latency of ~13.2 ms covers SQL indexed pre-filtering, pgvector distance calculation, and citation verification. In live deployments using cloud NVIDIA NIM endpoints, outbound HTTPS roundtrips add ~80–180 ms of inference transit.
 
 ---
 

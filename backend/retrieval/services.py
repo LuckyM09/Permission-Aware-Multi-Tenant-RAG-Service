@@ -66,6 +66,12 @@ class RetrievalService:
         if not clean_query:
             return []
 
+        # Ensure database session tenant context matches the authenticated user context
+        if user_ctx and user_ctx.tenant_id:
+            from accounts.middleware import set_tenant_db_context
+
+            set_tenant_db_context(str(user_ctx.tenant_id))
+
         # 1. Enforce strict Tenant and ACL Pre-Filtering on ALL query paths
         base_qs = self._get_acl_scoped_queryset(user_ctx, filters=filters)
         if not base_qs.exists():

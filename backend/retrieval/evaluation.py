@@ -245,7 +245,9 @@ class RAGEvaluator:
             # 2. Raw Unfiltered Baseline (sample every 10 to reduce overhead on 200 items)
             if idx % 10 == 1 or len(test_cases) <= 10:
                 t0_raw = time.perf_counter()
-                self._unfiltered_search_baseline(query, top_k=5)
+                self._unfiltered_search_baseline(
+                    query, tenant_id=user_ctx.tenant_id, top_k=5
+                )
                 elapsed_raw_ms = (time.perf_counter() - t0_raw) * 1000
                 latencies_unfiltered.append(elapsed_raw_ms)
 
@@ -309,15 +311,27 @@ class RAGEvaluator:
                 print(f"[RAGEvaluator] Progress: {idx}/{len(test_cases)} queries completed...")
 
         # Citation Shield verification
+        pub_chunk = getattr(env["doc_public"], "benchmark_chunk", None)
+        pub_chunk_id = pub_chunk.id if pub_chunk else None
+        if not pub_chunk_id:
+            set_tenant_db_context(str(env["tenant_acme"].id))
+            pub_chunk_id = env["doc_public"].chunks.first().id
+
+        other_chunk = getattr(env["doc_other_tenant"], "benchmark_chunk", None)
+        other_chunk_id = other_chunk.id if other_chunk else None
+        if not other_chunk_id:
+            set_tenant_db_context(str(env["tenant_cyber"].id))
+            other_chunk_id = env["doc_other_tenant"].chunks.first().id
+
         shield_test_response = (
-            f"Here is authorized citation [Doc: Public, Chunk: {env['doc_public'].chunks.first().id}] "
-            f"and unauthorized citation [Doc: Secret, Chunk: {env['doc_other_tenant'].chunks.first().id}]."
+            f"Here is authorized citation [Doc: Public, Chunk: {pub_chunk_id}] "
+            f"and unauthorized citation [Doc: Secret, Chunk: {other_chunk_id}]."
         )
         _, validated_cits = AntiLeakShield.verify_citations(
             shield_test_response,
             permitted_citations=[
                 {
-                    "chunk_id": str(env["doc_public"].chunks.first().id),
+                    "chunk_id": str(pub_chunk_id),
                     "document_title": "Public",
                 }
             ],
@@ -358,10 +372,19 @@ class RAGEvaluator:
 
         return metrics
 
-    def _unfiltered_search_baseline(self, query: str, top_k: int = 5):
+    def _unfiltered_search_baseline(
+        self, query: str, tenant_id: str | None = None, top_k: int = 5
+    ):
         """Simulates raw unfiltered retrieval query to measure index performance baseline."""
         from django.db import connection
         from pgvector.django import CosineDistance
+
+        if tenant_id and connection.vendor == "postgresql":
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT set_config('app.tenant_id', %s, true);",
+                    [str(tenant_id)],
+                )
 
         query_vec = self.embedder.get_embedding(query)
         if connection.vendor == "postgresql":
@@ -374,15 +397,26 @@ class RAGEvaluator:
 
     def _setup_benchmark_data(self) -> dict[str, Any]:
         """Seeds benchmark tenants, users, groups, and documents."""
-        # Clean up prior benchmark run data
-        Tenant.objects.filter(slug__in=["acme-bench", "cyberdyne-bench"]).delete()
-        User.objects.filter(email__in=[
-            "bench-admin@acme.com",
-            "alice-eng@acme.com",
-            "bob-fin@acme.com",
-            "carol-hr@acme.com",
-            "mallory-bench@cyberdyne.com",
-        ]).delete()
+        # Clean up prior benchmark run data under tenant RLS context
+        for t in list(
+            Tenant.objects.filter(slug__in=["acme-bench", "cyberdyne-bench"])
+        ):
+            set_tenant_db_context(str(t.id))
+            Chunk.objects.filter(tenant=t).delete()
+            Document.objects.filter(tenant=t).delete()
+            t.delete()
+
+        set_tenant_db_context(None)
+
+        User.objects.filter(
+            email__in=[
+                "bench-admin@acme.com",
+                "alice-eng@acme.com",
+                "bob-fin@acme.com",
+                "carol-hr@acme.com",
+                "mallory-bench@cyberdyne.com",
+            ]
+        ).delete()
 
         # Tenant 1: Acme
         tenant_acme = Tenant.objects.create(name="Acme Benchmark", slug="acme-bench")
@@ -563,13 +597,14 @@ class RAGEvaluator:
             DocumentPermission.objects.create(document=doc, group=group)
 
         emb = self.embedder.get_embedding(text)
-        Chunk.objects.create(
+        chunk = Chunk.objects.create(
             tenant=tenant,
             document=doc,
             position=0,
             text=text,
             embedding=emb,
         )
+        doc.benchmark_chunk = chunk
         return doc
 
     def _write_markdown_report(self, m: EvaluationMetrics, report_path: Path):
