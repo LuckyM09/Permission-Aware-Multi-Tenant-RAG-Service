@@ -153,3 +153,31 @@ class GroupMember(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.email} in {self.group.name}"
+
+
+class ContactInquiry(models.Model):
+    """
+    Stores inbound enterprise contact and pilot inquiries submitted via the public landing page.
+    """
+
+    id = models.UUIDField(
+        primary_key=True,
+        default=uuid.uuid4,
+        editable=False,
+    )
+    full_name = models.CharField(max_length=255)
+    work_email = models.EmailField()
+    company_name = models.CharField(max_length=255)
+    inquiry_type = models.CharField(max_length=255, blank=True)
+    team_size = models.CharField(max_length=100, blank=True)
+    use_case = models.TextField(blank=True)
+    source_ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Contact Inquiry"
+        verbose_name_plural = "Contact Inquiries"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.company_name}) - {self.work_email}"

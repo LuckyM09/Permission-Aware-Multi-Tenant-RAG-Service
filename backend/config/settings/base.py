@@ -36,6 +36,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "pgvector.django",
 ]
@@ -88,17 +89,34 @@ ASGI_APPLICATION = "config.asgi.application"
 # Database Configuration (PostgreSQL 16 + pgvector)
 # ATOMIC_REQUESTS guarantees that every HTTP request runs inside a transaction,
 # ensuring PostgreSQL transaction-local RLS variables ('app.tenant_id') remain active.
+# Connects as non-superuser vaultrag_user by default so FORCE ROW LEVEL SECURITY is enforced.
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": config("POSTGRES_DB", default="vaultrag_db"),
-        "USER": config("POSTGRES_USER", default="vaultrag_app"),
-        "PASSWORD": config("POSTGRES_PASSWORD", default="vaultrag_secure_password_dev"),
+        "USER": config(
+            "POSTGRES_DB_USER",
+            default=config("POSTGRES_APP_USER", default="vaultrag_user"),
+        ),
+        "PASSWORD": config(
+            "POSTGRES_DB_PASSWORD",
+            default=config(
+                "POSTGRES_APP_PASSWORD", default="vaultrag_secure_password_dev"
+            ),
+        ),
         "HOST": config("POSTGRES_HOST", default="postgres"),
         "PORT": config("POSTGRES_PORT", default="5432"),
         "ATOMIC_REQUESTS": True,
     }
 }
+
+# Multi-Tenancy Registration Invariants
+ALLOW_PUBLIC_TENANT_REGISTRATION = config(
+    "ALLOW_PUBLIC_TENANT_REGISTRATION", default=DEBUG, cast=bool
+)
+TENANT_REGISTRATION_INVITE_CODE = config(
+    "TENANT_REGISTRATION_INVITE_CODE", default=""
+)
 
 # Custom User Model - Configured from Day 1
 AUTH_USER_MODEL = "accounts.User"
@@ -161,22 +179,32 @@ REST_FRAMEWORK = {
 }
 
 # SimpleJWT Settings
+JWT_SIGNING_KEY = config("JWT_SIGNING_KEY", default=SECRET_KEY)
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
-    "SIGNING_KEY": SECRET_KEY,
+    "SIGNING_KEY": JWT_SIGNING_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CORS Settings (Allow Next.js frontend)
+# CORS & CSRF Settings (Allow Next.js frontend and configured domains)
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000",
+    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
+)
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000",
+    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
+)
+
+# AI Service Flags
+ALLOW_MOCK_AI_FALLBACK = config("ALLOW_MOCK_AI_FALLBACK", default=DEBUG, cast=bool)
 
 # Celery Configuration
 CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://redis:6379/0")
@@ -185,5 +213,31 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
-CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=True, cast=bool)
+CELERY_TASK_ALWAYS_EAGER = config("CELERY_TASK_ALWAYS_EAGER", default=DEBUG, cast=bool)
+
+# Email & Lead Notification Service (SMTP / Resend / SES)
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default=(
+        "django.core.mail.backends.console.EmailBackend"
+        if DEBUG
+        else "django.core.mail.backends.smtp.EmailBackend"
+    ),
+)
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.resend.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="VaultRAG Notifications <leads@vaultrag.com>"
+)
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
+
+admin_emails_raw = config("ADMIN_EMAILS", default="")
+ADMINS = [
+    ("Admin", email.strip())
+    for email in admin_emails_raw.split(",")
+    if email.strip()
+]
 CELERY_TASK_EAGER_PROPAGATES = True

@@ -1,8 +1,35 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { DevUserSwitcher } from "@/components/dev-user-switcher";
+import { useRouter } from "next/navigation";
+import {
+  Upload,
+  FileText,
+  Trash2,
+  Search,
+  RefreshCw,
+  Check,
+  Lock,
+  Users,
+  Building2,
+  AlertCircle,
+  FileUp,
+  CheckCircle2,
+  ExternalLink,
+  Shield,
+  Layers,
+  X,
+  ArrowRight,
+} from "lucide-react";
+import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
+import { AnimatedFileUpload } from "@/components/ui/animated-file-upload";
+import { Alert } from "@/components/ui/alert";
+import { particleDelete } from "@/components/ui/particle-delete";
+import { LiquidRippleButton } from "@/components/ui/liquid-ripple-button";
+import { ExpandableSearch } from "@/components/ui/expandable-search";
+import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
 
 interface UserContextData {
   authenticated: boolean;
@@ -42,6 +69,7 @@ interface DocumentItem {
 }
 
 export default function DocumentsPage() {
+  const router = useRouter();
   const [authData, setAuthData] = useState<UserContextData | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -59,6 +87,10 @@ export default function DocumentsPage() {
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+
+  // Tenant Groups state
+  const [tenantGroups, setTenantGroups] = useState<Array<{ id: string; name: string }>>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
 
   // Deletion State
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -83,6 +115,24 @@ export default function DocumentsPage() {
     }
   }, []);
 
+  // Fetch all departmental groups in tenant
+  const fetchTenantGroups = useCallback(async () => {
+    try {
+      setGroupsLoading(true);
+      const res = await fetch("/api/tenants/groups");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setTenantGroups(data);
+        }
+      }
+    } catch {
+      // Ignore network errors
+    } finally {
+      setGroupsLoading(false);
+    }
+  }, []);
+
   // Fetch documents list
   const fetchDocuments = useCallback(async () => {
     try {
@@ -99,9 +149,35 @@ export default function DocumentsPage() {
   }, []);
 
   useEffect(() => {
+    document.title = "Documents Hub | VaultRAG Enterprise";
     fetchSession();
-    fetchDocuments();
-  }, [fetchSession, fetchDocuments]);
+  }, [fetchSession]);
+
+  useEffect(() => {
+    if (!authData) return;
+    if (!authData.authenticated) {
+      router.replace("/login");
+    } else if (!authData.context?.is_admin) {
+      router.replace("/chat");
+    } else {
+      fetchDocuments();
+      fetchTenantGroups();
+    }
+  }, [authData, router, fetchDocuments, fetchTenantGroups]);
+
+  // Derived list of groups available for restriction
+  const displayGroups = useMemo(() => {
+    if (tenantGroups && tenantGroups.length > 0) {
+      return tenantGroups.map((g) => ({ id: g.id, name: g.name }));
+    }
+    if (authData?.context?.group_ids && authData.context.group_ids.length > 0) {
+      return authData.context.group_ids.map((gid, idx) => ({
+        id: gid,
+        name: authData.context?.groups[idx] || gid,
+      }));
+    }
+    return [];
+  }, [tenantGroups, authData]);
 
   // Polling hook: If any doc is "processing" or "uploaded", poll every 2.5s
   useEffect(() => {
@@ -124,7 +200,6 @@ export default function DocumentsPage() {
     setUploadError("");
     setUploadSuccess("");
     if (!title) {
-      // Default title to base file name without extension
       const cleanName = file.name.replace(/\.[^/.]+$/, "");
       setTitle(cleanName);
     }
@@ -178,8 +253,8 @@ export default function DocumentsPage() {
       } else {
         setUploadSuccess(
           data.deduplicated
-            ? "Duplicate content detected: Document linked instantly."
-            : "Document uploaded! Ingestion & chunking pipeline started."
+            ? "Duplicate content detected: Document linked instantly via SHA-256."
+            : "Document uploaded successfully! Chunking and pgvector embedding underway."
         );
         setSelectedFile(null);
         setTitle("");
@@ -205,6 +280,10 @@ export default function DocumentsPage() {
     try {
       const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
       if (res.ok) {
+        const rowEl = document.getElementById(`doc-row-${docId}`);
+        if (rowEl) {
+          await particleDelete(rowEl, { duration: 600, direction: "right" });
+        }
         setDocuments((prev) => prev.filter((d) => d.id !== docId));
       } else {
         alert("Failed to delete document. Ensure you have admin or owner privileges.");
@@ -216,7 +295,6 @@ export default function DocumentsPage() {
     }
   };
 
-  // Group selector toggle
   const toggleGroupSelection = (groupId: string) => {
     setSelectedGroupIds((prev) =>
       prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
@@ -246,7 +324,6 @@ export default function DocumentsPage() {
     }
   };
 
-  // Filter documents
   const filteredDocuments = documents.filter((doc) => {
     const matchesQuery =
       doc.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
@@ -257,372 +334,300 @@ export default function DocumentsPage() {
 
   const currentTenant = authData?.tenants?.find((t) => t.is_current);
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[#090D16] text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Dev User Switcher */}
-      <DevUserSwitcher
-        currentEmail={authData?.user?.email}
-        onSwitched={() => {
-          fetchSession();
-          fetchDocuments();
-        }}
-      />
+  if (authLoading || !authData) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <p className="text-xs text-[#64748B] font-mono mt-4">
+          Loading document vault security context...
+        </p>
+      </div>
+    );
+  }
 
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-[#0F172A]/80 backdrop-blur-md sticky top-10 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-lg font-bold tracking-tight text-white hover:text-indigo-400 transition-colors flex items-center gap-2"
-            >
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-md shadow-indigo-600/30">
-                V
-              </div>
-              <span>VaultRAG</span>
-            </Link>
+  if (!authData.authenticated) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <p className="text-xs text-[#64748B] font-mono mt-4">
+          Authentication required. Redirecting to sign in...
+        </p>
+      </div>
+    );
+  }
 
-            <nav className="flex items-center gap-1 text-sm font-medium">
-              <Link
-                href="/"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                Overview
-              </Link>
-              <Link
-                href="/documents"
-                className="px-3 py-1.5 rounded-md bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20"
-              >
-                Documents & Ingestion
-              </Link>
-              <Link
-                href="/retrieval"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                Semantic Search
-              </Link>
+  if (!authData.context?.is_admin) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#0F172A]">
+        <AppHeader
+          userEmail={authData?.user?.email}
+          tenantName={currentTenant?.name}
+          role={authData?.context?.role}
+          onLogout={fetchSession}
+        />
+        <main className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md w-full p-8 rounded-2xl border border-[#E6E6E1] bg-white text-center space-y-4 shadow-elevated">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center mx-auto">
+              <Shield className="w-6 h-6" />
+            </div>
+            <h2 className="text-xl font-bold text-[#0F172A]">Knowledge Management Restricted</h2>
+            <p className="text-xs text-[#52525B] leading-relaxed">
+              Document uploads and ACL permissions are managed exclusively by administrators.
+              Your account has access to query permitted documents in Anti-Leak Chat.
+            </p>
+            <div className="pt-2">
               <Link
                 href="/chat"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+                className="px-5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs font-semibold inline-block hover:bg-[#1E293B] shadow-xs"
               >
-                💬 Chat Engine
+                Return to Anti-Leak Chat →
               </Link>
-              <Link
-                href="/audit"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                🛡️ Audit Ledger
-              </Link>
-              <Link
-                href="/admin"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                ⚙️ Admin
-              </Link>
-            </nav>
+            </div>
           </div>
+        </main>
+      </div>
+    );
+  }
 
-          <div className="flex items-center gap-3">
-            {authData?.authenticated && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Org:</span>
-                <span className="px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 font-medium">
-                  {currentTenant?.name || "Acme Corp"}
-                </span>
-                <span className="text-slate-500">|</span>
-                <span className="text-slate-300 font-medium">{authData.user?.email}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+  return (
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#0F172A]">
+      {/* Global App Header */}
+      <AppHeader
+        userEmail={authData?.user?.email}
+        tenantName={currentTenant?.name}
+        role={authData?.context?.role}
+        onLogout={fetchSession}
+      />
 
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium tracking-wide mb-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Milestone 2: Ingestion & Embeddings
-            </div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E6E6E1] pb-6">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
               Document Knowledge Base
             </h1>
-            <p className="text-slate-400 text-sm mt-1 max-w-2xl">
+            <p className="text-xs sm:text-sm text-[#52525B] max-w-2xl leading-relaxed">
               Upload PDF, DOCX, TXT, or Markdown documents. Files are validated via magic-bytes,
               chunked, and embedded into 1,536-dimensional vectors with tenant and ACL tags.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={() => fetchDocuments()}
-            className="self-start md:self-auto inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all shadow-sm"
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#E6E6E1] bg-white hover:bg-[#F4F4F0] text-[#0F172A] text-xs font-semibold transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
           >
-            <svg
-              className="w-3.5 h-3.5 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Refresh Pipeline
+            <RefreshCw className="w-3.5 h-3.5 text-[#64748B]" />
+            <span>Refresh Pipeline</span>
           </button>
         </div>
 
         {/* Upload Dropzone Section */}
-        <div className="p-6 rounded-2xl border border-slate-800 bg-[#0F172A]/90 backdrop-blur-md shadow-xl space-y-6">
+        <section
+          aria-labelledby="upload-heading"
+          className="rounded-2xl border border-[#E6E6E1] bg-white p-6 sm:p-8 shadow-card space-y-6"
+        >
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-white">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-[#0284C7]">
+                <FileUp className="w-4 h-4" />
+              </div>
+              <h2 id="upload-heading" className="text-base font-bold text-[#0F172A]">
                 Upload New Document
               </h2>
-              <p className="text-xs text-slate-400">
-                Supported formats: PDF, DOCX, Markdown, Text (Max 20MB)
-              </p>
             </div>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            <span className="text-[10px] font-mono font-medium px-2.5 py-1 rounded-md bg-[#FAF9F6] text-[#64748B] border border-[#E6E6E1]">
               SHA-256 Deduplicated
             </span>
           </div>
 
           <form onSubmit={handleUpload} className="space-y-5">
-            {/* Drag & Drop Area */}
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setIsDragging(true);
-              }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
-                isDragging
-                  ? "border-indigo-400 bg-indigo-500/10 shadow-lg shadow-indigo-500/10"
-                  : selectedFile
-                  ? "border-emerald-500/50 bg-emerald-500/5"
-                  : "border-slate-700 hover:border-slate-500 bg-slate-900/40"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.txt,.md"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files.length > 0) {
-                    handleFileChange(e.target.files[0]);
-                  }
-                }}
-                className="hidden"
-              />
+            {/* Animated File Upload Component (EasyUI) */}
+            <AnimatedFileUpload
+              onFilesSelected={(files) => handleFileChange(files[0])}
+              accept=".pdf,.docx,.txt,.md"
+              disabled={isUploading}
+            />
 
-              {selectedFile ? (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                    ✓
+            {selectedFile && (
+              <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <p className="text-sm font-semibold text-emerald-300">{selectedFile.name}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatFileSize(selectedFile.size)} • Click or drop another to replace
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 rounded-full bg-indigo-600/20 text-indigo-400 flex items-center justify-center mb-1">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                      />
-                    </svg>
+                  <div>
+                    <p className="text-xs font-bold text-[#0F172A]">{selectedFile.name}</p>
+                    <p className="text-[11px] text-[#64748B] font-mono">
+                      {formatFileSize(selectedFile.size)} • Ready for Nemotron embedding
+                    </p>
                   </div>
-                  <p className="text-sm font-medium text-slate-200">
-                    <span className="text-indigo-400 font-semibold">Click to upload</span> or drag
-                    and drop files here
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Automatic Magic-Byte signature validation & parsing
-                  </p>
                 </div>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFile(null)}
+                  className="p-1 rounded-md text-[#64748B] hover:text-rose-600 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {uploadError && (
+              <Alert variant="destructive" title="Upload Failed" dismissible onDismiss={() => setUploadError("")}>
+                {uploadError}
+              </Alert>
+            )}
+
+            {uploadSuccess && (
+              <Alert variant="success" title="Ingestion Complete" dismissible onDismiss={() => setUploadSuccess("")}>
+                {uploadSuccess}
+              </Alert>
+            )}
 
             {/* Form Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Title */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label htmlFor="doc-title-input" className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
                   Document Title
                 </label>
                 <input
+                  id="doc-title-input"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Q3 Architecture RFC"
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs sm:text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                 />
               </div>
 
               {/* Visibility Scope */}
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                <label htmlFor="visibility-select" className="block text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-2">
                   Access Visibility Scope
                 </label>
                 <select
+                  id="visibility-select"
                   value={visibility}
                   onChange={(e) =>
                     setVisibility(e.target.value as "private" | "group" | "tenant")
                   }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 transition-colors"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs sm:text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all"
                 >
-                  <option value="private">🔒 Private — Only you (the owner) can access</option>
-                  <option value="group">👥 Group Restricted — Granted to specific group(s)</option>
-                  <option value="tenant">🏢 Tenant-Wide — All members of this organization</option>
+                  <option value="private">Private — Owner only</option>
+                  <option value="group">Group Restricted — Specific group memberships</option>
+                  <option value="tenant">Tenant-Wide — All members of this organization</option>
                 </select>
               </div>
             </div>
 
             {/* Group Checklist (if Group scope selected) */}
             {visibility === "group" && (
-              <div className="p-4 rounded-xl border border-sky-500/20 bg-sky-500/5 space-y-2">
-                <span className="text-xs font-semibold text-sky-300 block">
-                  Select Permitted Groups:
-                </span>
-                {authData?.context?.group_ids && authData.context.group_ids.length > 0 ? (
+              <div className="p-4 rounded-xl border border-[#E6E6E1] bg-[#F8FAFC] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-[#0F172A] block">
+                    Select Permitted Groups:
+                  </span>
+                  {selectedGroupIds.length > 0 && (
+                    <span className="text-[11px] text-[#0284C7] font-semibold">
+                      {selectedGroupIds.length} group{selectedGroupIds.length > 1 ? "s" : ""} selected
+                    </span>
+                  )}
+                </div>
+
+                {displayGroups.length > 0 ? (
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {authData.context.group_ids.map((gid, idx) => {
-                      const groupName = authData.context?.groups[idx] || gid;
-                      const isChecked = selectedGroupIds.includes(gid);
+                    {displayGroups.map((grp) => {
+                      const isChecked = selectedGroupIds.includes(grp.id);
                       return (
                         <button
-                          key={gid}
+                          key={grp.id}
                           type="button"
-                          onClick={() => toggleGroupSelection(gid)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                          onClick={() => toggleGroupSelection(grp.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all cursor-pointer ${
                             isChecked
-                              ? "bg-sky-500/20 border-sky-400 text-sky-200 shadow-sm"
-                              : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
+                              ? "bg-[#0F172A] border-[#0F172A] text-white font-semibold shadow-xs"
+                              : "bg-white border-[#E6E6E1] text-[#52525B] hover:text-[#0F172A] hover:bg-[#FAF9F6]"
                           }`}
                         >
                           {isChecked ? "✓ " : "+ "}
-                          {groupName}
+                          {grp.name}
                         </button>
                       );
                     })}
                   </div>
+                ) : groupsLoading ? (
+                  <p className="text-xs text-[#64748B] italic">Loading tenant departments...</p>
                 ) : (
-                  <p className="text-xs text-slate-400 italic">
-                    Your account has no group memberships in this tenant. Documents uploaded will only
-                    be visible by Tenant Admins.
-                  </p>
+                  <div className="p-3.5 rounded-lg border border-dashed border-[#E6E6E1] bg-white text-center space-y-1.5">
+                    <p className="text-xs text-[#64748B]">
+                      No departmental groups exist in this organization yet.
+                    </p>
+                    <Link
+                      href="/admin"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0284C7] hover:underline"
+                    >
+                      <span>Create departments in Tenant Admin</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 )}
-              </div>
-            )}
-
-            {/* Feedback messages */}
-            {uploadError && (
-              <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
-                {uploadError}
-              </div>
-            )}
-            {uploadSuccess && (
-              <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                {uploadSuccess}
               </div>
             )}
 
             {/* Submit Button */}
-            <div className="flex justify-end">
-              <button
+            <div className="flex justify-end pt-1">
+              <LiquidRippleButton
                 type="submit"
+                variant="dark"
                 disabled={!selectedFile || isUploading}
-                className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-all shadow-md shadow-indigo-600/30 flex items-center gap-2"
+                showIcon={false}
+                className="min-h-11 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2"
               >
                 {isUploading ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Ingesting & Embedding...
+                    <span>Ingesting &amp; Embedding...</span>
                   </>
                 ) : (
                   <>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-                      />
-                    </svg>
-                    Upload & Ingest Document
+                    <Upload className="w-4 h-4 text-[#00D2FF]" />
+                    <span>Upload &amp; Ingest Document</span>
                   </>
                 )}
-              </button>
+              </LiquidRippleButton>
             </div>
           </form>
-        </div>
+        </section>
 
         {/* Documents Catalog & Table */}
-        <div className="p-6 rounded-2xl border border-slate-800 bg-[#0F172A]/90 backdrop-blur-md shadow-xl space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section
+          aria-labelledby="catalog-heading"
+          className="rounded-2xl border border-[#E6E6E1] bg-white shadow-card overflow-hidden"
+        >
+          <div className="p-5 sm:p-6 border-b border-[#E6E6E1] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold text-white">
-                Ingested Documents
+              <h2 id="catalog-heading" className="text-base font-bold text-[#0F172A]">
+                Ingested Documents ({documents.length})
               </h2>
-              <p className="text-xs text-slate-400">
-                Filtered strictly by active tenant isolation & permissions
+              <p className="text-xs text-[#64748B]">
+                Database-enforced isolation per active session and group grants
               </p>
             </div>
 
-            {/* Filters */}
+            {/* Search & Status Filters */}
             <div className="flex items-center gap-3">
-              {/* Search Bar */}
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search documents..."
-                  value={filterQuery}
-                  onChange={(e) => setFilterQuery(e.target.value)}
-                  className="px-3 py-1.5 pl-8 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                />
-                <svg
-                  className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
+              <ExpandableSearch
+                placeholder="Search by title or owner..."
+                onSearch={(q) => setFilterQuery(q)}
+                variant="light"
+              />
 
-              {/* Status Filter */}
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+                className="px-3 py-2 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs text-[#0F172A] focus:outline-none focus:ring-1 focus:ring-[#0F172A]"
               >
                 <option value="all">All States</option>
                 <option value="ready">Ready</option>
@@ -634,28 +639,28 @@ export default function DocumentsPage() {
 
           {/* Table */}
           {docsLoading || authLoading ? (
-            <div className="py-16 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-              Loading document catalog...
+            <div className="py-16 text-center text-xs text-[#64748B] flex flex-col items-center justify-center gap-3">
+              <KineticTextLoader text="VaultRAG" className="scale-75" />
+              <span className="text-xs text-[#64748B] font-mono">Synchronizing document catalog &amp; RLS vectors...</span>
             </div>
           ) : filteredDocuments.length === 0 ? (
-            <div className="py-16 text-center space-y-2 border border-dashed border-slate-800 rounded-xl bg-slate-900/30">
-              <div className="w-10 h-10 rounded-full bg-slate-800 text-slate-500 mx-auto flex items-center justify-center">
-                📄
+            <div className="py-20 text-center space-y-2 p-6">
+              <div className="w-12 h-12 rounded-2xl bg-[#FAF9F6] border border-[#E6E6E1] text-[#94A3B8] mx-auto flex items-center justify-center">
+                <FileText className="w-5 h-5 text-[#94A3B8]" />
               </div>
-              <p className="text-sm font-medium text-slate-300">No documents found</p>
-              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              <p className="text-xs sm:text-sm font-bold text-[#0F172A]">No documents found</p>
+              <p className="text-xs text-[#64748B] max-w-sm mx-auto">
                 No documents match your filter or are accessible under your current role and group
-                permissions. Upload a new document above to test ingestion!
+                permissions.
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
+                  <tr className="border-b border-[#E6E6E1] bg-[#F8FAFC] text-[#64748B] font-mono uppercase tracking-wider text-[11px]">
                     <th className="py-3 px-4 font-semibold">Title</th>
-                    <th className="py-3 px-4 font-semibold">Scope</th>
+                    <th className="py-3 px-4 font-semibold">Visibility</th>
                     <th className="py-3 px-4 font-semibold">Status</th>
                     <th className="py-3 px-4 font-semibold">Chunks</th>
                     <th className="py-3 px-4 font-semibold">Size</th>
@@ -663,43 +668,46 @@ export default function DocumentsPage() {
                     <th className="py-3 px-4 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
+                <tbody className="divide-y divide-[#E6E6E1]">
                   {filteredDocuments.map((doc) => {
                     const isDeleting = deletingId === doc.id;
                     return (
                       <tr
                         key={doc.id}
-                        className="hover:bg-slate-800/30 transition-colors group"
+                        id={`doc-row-${doc.id}`}
+                        className="hover:bg-[#FAF9F6] transition-colors"
                       >
-                        {/* Title & Uploader */}
+                        {/* Title & Owner */}
                         <td className="py-3.5 px-4">
-                          <div className="font-medium text-slate-100 flex items-center gap-2">
-                            <span className="text-indigo-400">📄</span>
+                          <div className="font-semibold text-[#0F172A] flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5 text-[#64748B] shrink-0" />
                             <span className="truncate max-w-xs">{doc.title}</span>
                           </div>
-                          <div className="text-[11px] text-slate-500 mt-0.5">
-                            By {doc.owner_email || "Unknown"}
+                          <div className="text-[11px] text-[#64748B] font-mono mt-0.5">
+                            {doc.owner_email || "System"}
                           </div>
                         </td>
 
                         {/* Visibility */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           {doc.visibility === "private" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[10px] font-medium">
-                              🔒 Private
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-semibold font-mono">
+                              <Lock className="w-3 h-3" />
+                              <span>Private</span>
                             </span>
                           )}
                           {doc.visibility === "group" && (
                             <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium">
-                                👥 Group
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-800 text-[10px] font-semibold font-mono">
+                                <Users className="w-3 h-3" />
+                                <span>Group</span>
                               </span>
                               {doc.assigned_groups && doc.assigned_groups.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                   {doc.assigned_groups.map((g) => (
                                     <span
                                       key={g.id}
-                                      className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400"
+                                      className="text-[9px] px-1.5 py-0.5 rounded bg-[#FAF9F6] border border-[#E6E6E1] text-[#64748B] font-mono"
                                     >
                                       {g.name}
                                     </span>
@@ -709,40 +717,42 @@ export default function DocumentsPage() {
                             </div>
                           )}
                           {doc.visibility === "tenant" && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium">
-                              🏢 Tenant-Wide
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-sky-200 bg-sky-50 text-sky-800 text-[10px] font-semibold font-mono">
+                              <Building2 className="w-3 h-3" />
+                              <span>Tenant-Wide</span>
                             </span>
                           )}
                         </td>
 
                         {/* Status */}
-                        <td className="py-3.5 px-4">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           {doc.status === "ready" && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              Ready
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px] font-semibold font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              <span>Ready</span>
                             </span>
                           )}
                           {doc.status === "processing" && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px] font-medium">
-                              <span className="w-2.5 h-2.5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
-                              Processing
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-semibold font-mono">
+                              <span className="w-2 h-2 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                              <span>Processing</span>
                             </span>
                           )}
                           {doc.status === "uploaded" && (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[10px] font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                              Uploaded
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-semibold font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              <span>Uploaded</span>
                             </span>
                           )}
                           {doc.status === "failed" && (
                             <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-300 text-[10px] font-medium">
-                                ✕ Failed
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-rose-200 bg-rose-50 text-rose-800 text-[10px] font-semibold font-mono">
+                                <AlertCircle className="w-3 h-3" />
+                                <span>Failed</span>
                               </span>
                               {doc.error_message && (
                                 <p
-                                  className="text-[10px] text-rose-400 truncate max-w-xs"
+                                  className="text-[10px] text-rose-600 truncate max-w-xs"
                                   title={doc.error_message}
                                 >
                                   {doc.error_message}
@@ -753,50 +763,40 @@ export default function DocumentsPage() {
                         </td>
 
                         {/* Chunks */}
-                        <td className="py-3.5 px-4 font-mono text-slate-300">
+                        <td className="py-3.5 px-4 font-mono text-[#0F172A] whitespace-nowrap">
                           {doc.chunk_count > 0 ? (
-                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[11px]">
+                            <span className="px-2.5 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E2E8F0] text-[11px] font-semibold">
                               {doc.chunk_count} chunks
                             </span>
                           ) : (
-                            <span className="text-slate-600">—</span>
+                            <span className="text-[#94A3B8]">—</span>
                           )}
                         </td>
 
                         {/* Size */}
-                        <td className="py-3.5 px-4 text-slate-400">
+                        <td className="py-3.5 px-4 text-[#64748B] font-mono whitespace-nowrap">
                           {formatFileSize(doc.file_size)}
                         </td>
 
                         {/* Upload Date */}
-                        <td className="py-3.5 px-4 text-slate-400 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-[#64748B] font-mono whitespace-nowrap">
                           {formatDate(doc.created_at)}
                         </td>
 
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right">
                           <button
+                            type="button"
                             onClick={() => handleDelete(doc.id)}
                             disabled={isDeleting}
-                            className="text-slate-500 hover:text-rose-400 disabled:opacity-40 p-1 rounded transition-colors"
-                            title="Delete document and vector chunks"
+                            aria-label={`Delete ${doc.title}`}
+                            className="text-[#94A3B8] hover:text-rose-600 hover:bg-rose-50 disabled:opacity-40 p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 cursor-pointer"
+                            title="Delete document and chunk embeddings"
                           >
                             {isDeleting ? (
-                              <span className="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin inline-block" />
+                              <span className="w-3.5 h-3.5 border-2 border-rose-600 border-t-transparent rounded-full animate-spin inline-block" />
                             ) : (
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                              </svg>
+                              <Trash2 className="w-3.5 h-3.5" />
                             )}
                           </button>
                         </td>
@@ -807,8 +807,9 @@ export default function DocumentsPage() {
               </table>
             </div>
           )}
-        </div>
+        </section>
       </main>
+      <AppFooter />
     </div>
   );
 }

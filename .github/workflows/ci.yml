@@ -19,12 +19,12 @@ jobs:
         image: pgvector/pgvector:pg16
         env:
           POSTGRES_DB: vaultrag_db
-          POSTGRES_USER: vaultrag_app
-          POSTGRES_PASSWORD: vaultrag_secure_password_dev
+          POSTGRES_USER: vaultrag_admin
+          POSTGRES_PASSWORD: vaultrag_admin_password_dev
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U vaultrag_admin -d vaultrag_db"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 5
@@ -55,6 +55,56 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
+      - name: Provision Test Database Roles & Extensions
+        run: |
+          python -c "
+          import psycopg2
+          # 1. Install vector and uuid-ossp in template1 so any new test DBs automatically inherit them
+          conn_template = psycopg2.connect(
+              dbname='template1',
+              user='vaultrag_admin',
+              password='vaultrag_admin_password_dev',
+              host='localhost',
+              port=5432
+          )
+          conn_template.autocommit = True
+          with conn_template.cursor() as cur:
+              cur.execute('CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";')
+              cur.execute('CREATE EXTENSION IF NOT EXISTS \"vector\";')
+          conn_template.close()
+
+          # 2. Configure vaultrag_db and non-superuser test role vaultrag_user
+          conn = psycopg2.connect(
+              dbname='vaultrag_db',
+              user='vaultrag_admin',
+              password='vaultrag_admin_password_dev',
+              host='localhost',
+              port=5432
+          )
+          conn.autocommit = True
+          with conn.cursor() as cur:
+              cur.execute('CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";')
+              cur.execute('CREATE EXTENSION IF NOT EXISTS \"vector\";')
+              cur.execute('''
+                  DO \$\$
+                  BEGIN
+                      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vaultrag_user') THEN
+                          CREATE ROLE vaultrag_user WITH LOGIN PASSWORD 'vaultrag_secure_password_dev' NOSUPERUSER NOBYPASSRLS CREATEDB;
+                      ELSE
+                          ALTER ROLE vaultrag_user WITH PASSWORD 'vaultrag_secure_password_dev' NOSUPERUSER NOBYPASSRLS CREATEDB;
+                      END IF;
+                      GRANT ALL PRIVILEGES ON DATABASE vaultrag_db TO vaultrag_user;
+                      GRANT ALL ON SCHEMA public TO vaultrag_user;
+                      GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO vaultrag_user;
+                      GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO vaultrag_user;
+                      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO vaultrag_user;
+                      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO vaultrag_user;
+                  END \$\$;
+              ''')
+          conn.close()
+          print('CI template1 and vaultrag_db initialized with pgvector and vaultrag_user role.')
+          "
+
       - name: Run Ruff Linter
         run: |
           ruff check backend/
@@ -65,8 +115,8 @@ jobs:
           DJANGO_DEBUG: True
           DJANGO_SETTINGS_MODULE: config.settings.dev
           POSTGRES_DB: vaultrag_db
-          POSTGRES_USER: vaultrag_app
-          POSTGRES_PASSWORD: vaultrag_secure_password_dev
+          POSTGRES_APP_USER: vaultrag_user
+          POSTGRES_APP_PASSWORD: vaultrag_secure_password_dev
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
           REDIS_HOST: localhost

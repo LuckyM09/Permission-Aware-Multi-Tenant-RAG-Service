@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.context import UserContext
+from accounts.middleware import set_tenant_db_context
 from documents.models import Chunk, Document
 from ingestion.embedder import EmbeddingAdapter
 from tenants.models import Group, Membership, Role, Tenant
@@ -113,6 +114,8 @@ class ChatServiceAndMultiTenancyTests(TestCase):
         text_a = "Project Quantum operates at 500 GHz clock speed with sub-micron optics."
         vec_a = self.embedder.get_embedding(text_a)
 
+        set_tenant_db_context(str(self.tenant_a.id))
+
         # Alpha document (Tenant-wide)
         self.doc_a = Document.objects.create(
             tenant=self.tenant_a,
@@ -129,6 +132,10 @@ class ChatServiceAndMultiTenancyTests(TestCase):
             embedding=vec_a,
             metadata={"page": 1, "images": []},
         )
+
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
 
     def test_cross_tenant_query_refusal_zero_leakage(self):
         """
@@ -188,6 +195,7 @@ class ChatServiceAndMultiTenancyTests(TestCase):
         group_engineering = Group.objects.create(
             tenant=self.tenant_a, name="Engineering"
         )
+        set_tenant_db_context(str(self.tenant_a.id))
         restricted_doc = Document.objects.create(
             tenant=self.tenant_a,
             owner=self.user_a,

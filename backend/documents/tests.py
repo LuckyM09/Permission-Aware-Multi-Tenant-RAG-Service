@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from accounts.middleware import set_tenant_db_context
 from documents.models import Chunk, Document, DocumentPermission
 from ingestion.chunker import RecursiveTextChunker
 from ingestion.embedder import EmbeddingAdapter
@@ -31,6 +32,11 @@ class DocumentModelTests(TestCase):
             email="alice@acme.com", password="Password123!"
         )
         Membership.objects.create(tenant=self.tenant, user=self.user, role=Role.ADMIN)
+        set_tenant_db_context(str(self.tenant.id))
+
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
 
     def test_document_and_chunk_lifecycle(self):
         """Test document creation, chunk assignment, and cascading deletion."""
@@ -225,6 +231,11 @@ class DocumentAPITests(TestCase):
         self.admin_token = str(RefreshToken.for_user(self.admin).access_token)
         self.member_token = str(RefreshToken.for_user(self.member).access_token)
         self.viewer_token = str(RefreshToken.for_user(self.viewer).access_token)
+        set_tenant_db_context(str(self.tenant.id))
+
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
 
     def test_upload_and_ingestion_api(self):
         """Test file upload endpoint creates document and generates chunks."""
@@ -238,15 +249,16 @@ class DocumentAPITests(TestCase):
         )
 
         url = reverse("document_list_create")
-        response = self.client.post(
-            url,
-            {
-                "file": uploaded_file,
-                "title": "Company Policies",
-                "visibility": Document.Visibility.TENANT,
-            },
-            format="multipart",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                url,
+                {
+                    "file": uploaded_file,
+                    "title": "Company Policies",
+                    "visibility": Document.Visibility.TENANT,
+                },
+                format="multipart",
+            )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["document"]["title"], "Company Policies")
@@ -357,11 +369,12 @@ class DocumentAPITests(TestCase):
         file1 = SimpleUploadedFile("procedure1.txt", content, content_type="text/plain")
 
         url = reverse("document_list_create")
-        res1 = self.client.post(
-            url,
-            {"file": file1, "title": "Procedure 1", "visibility": Document.Visibility.TENANT},
-            format="multipart",
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            res1 = self.client.post(
+                url,
+                {"file": file1, "title": "Procedure 1", "visibility": Document.Visibility.TENANT},
+                format="multipart",
+            )
         self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
         doc1 = Document.objects.get(id=res1.data["document"]["id"])
         self.assertEqual(doc1.status, Document.Status.READY)
@@ -513,3 +526,43 @@ class PostgreSQLRowLevelSecurityTests(TestCase):
 
         no_context_docs = list(Document.objects.all())
         self.assertEqual(len(no_context_docs), 0)
+
+    def test_rls_enforcement_through_http_api_request_pipeline(self):
+        """
+        End-to-End API Level Integration Test:
+        Proves RLS enforcement through the full HTTP request path:
+        JWT Auth Header -> TenantContextMiddleware -> Django View -> PostgreSQL RLS.
+        """
+        if connection.vendor != "postgresql":
+            self.skipTest("Row-Level Security tests require PostgreSQL.")
+
+        client = APIClient()
+
+        # 1. Tenant Alpha User makes HTTP GET request to /api/documents/
+        token_a = self.get_jwt_for_user(self.user_a, self.tenant_a)
+        response_a = client.get("/api/documents/", HTTP_AUTHORIZATION=f"Bearer {token_a}")
+        self.assertEqual(response_a.status_code, status.HTTP_200_OK)
+        docs_a = response_a.json()
+
+        # Must receive only Tenant Alpha documents
+        self.assertEqual(len(docs_a), 1)
+        self.assertEqual(docs_a[0]["title"], "Alpha Strategy.pdf")
+        self.assertEqual(docs_a[0]["id"], str(self.doc_a.id))
+
+        # 2. Tenant Beta User makes HTTP GET request to /api/documents/
+        token_b = self.get_jwt_for_user(self.user_b, self.tenant_b)
+        response_b = client.get("/api/documents/", HTTP_AUTHORIZATION=f"Bearer {token_b}")
+        self.assertEqual(response_b.status_code, status.HTTP_200_OK)
+        docs_b = response_b.json()
+
+        # Must receive only Tenant Beta documents (Tenant Alpha is 100% invisible)
+        self.assertEqual(len(docs_b), 1)
+        self.assertEqual(docs_b[0]["title"], "Beta Financials.pdf")
+        self.assertEqual(docs_b[0]["id"], str(self.doc_b.id))
+
+        # 3. Direct access across tenant boundary returns 404 (zero enumeration)
+        cross_tenant_detail = client.get(
+            f"/api/documents/{self.doc_a.id}/",
+            HTTP_AUTHORIZATION=f"Bearer {token_b}",
+        )
+        self.assertEqual(cross_tenant_detail.status_code, status.HTTP_404_NOT_FOUND)

@@ -1,5 +1,6 @@
 import logging
 
+from django.db import transaction
 from rest_framework import permissions, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -55,19 +56,25 @@ class DocumentListCreateView(APIView):
 
         document, was_deduplicated = serializer.save()
 
-        # Enqueue ingestion task if not deduplicated
+        # Enqueue ingestion task if not deduplicated (dispatched safely after commit)
         if not was_deduplicated:
-            try:
-                ingest_document_task.delay(str(document.id))
-            except Exception as exc:
-                # If Celery worker/Redis is not running (e.g. lightweight local dev), run synchronously
-                logger.warning(
-                    f"Celery dispatch failed ({exc}), falling back to synchronous ingestion."
-                )
+            doc_id = str(document.id)
+            tenant_id_str = str(document.tenant_id)
+
+            def _dispatch():
                 try:
-                    ingest_document_task(str(document.id))
-                except Exception as sync_exc:
-                    logger.error(f"Synchronous ingestion failed: {sync_exc}")
+                    ingest_document_task.delay(doc_id, tenant_id_str)
+                except Exception as exc:
+                    # If Celery worker/Redis is not running (e.g. lightweight local dev), run synchronously
+                    logger.warning(
+                        f"Celery dispatch failed ({exc}), falling back to synchronous ingestion."
+                    )
+                    try:
+                        ingest_document_task(doc_id, tenant_id_str)
+                    except Exception as sync_exc:
+                        logger.error(f"Synchronous ingestion failed: {sync_exc}")
+
+            transaction.on_commit(_dispatch)
 
         # Record audit log
         if user_ctx.tenant_id:

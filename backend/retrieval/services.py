@@ -1,6 +1,8 @@
+from datetime import date, datetime
 import math
 import re
 from typing import Any
+from uuid import UUID
 
 from django.db import connection
 from django.db.models import Q
@@ -145,43 +147,72 @@ class RetrievalService:
 
         if filters:
             # 1. Document ID(s)
+            def _to_uuid(val):
+                try:
+                    return UUID(str(val))
+                except (ValueError, TypeError):
+                    return None
+
             doc_id = filters.get("document_id") or filters.get("doc_id")
             if doc_id:
                 if isinstance(doc_id, (list, tuple, set)):
-                    qs = qs.filter(document_id__in=doc_id)
+                    valid_uuids = [u for item in doc_id if (u := _to_uuid(item))]
+                    if valid_uuids:
+                        qs = qs.filter(document_id__in=valid_uuids)
                 else:
-                    qs = qs.filter(document_id=doc_id)
+                    valid_u = _to_uuid(doc_id)
+                    if valid_u:
+                        qs = qs.filter(document_id=valid_u)
 
             doc_ids = filters.get("document_ids")
             if doc_ids and isinstance(doc_ids, (list, tuple, set)):
-                qs = qs.filter(document_id__in=doc_ids)
+                valid_uuids = [u for item in doc_ids if (u := _to_uuid(item))]
+                if valid_uuids:
+                    qs = qs.filter(document_id__in=valid_uuids)
 
             # 2. File type
             file_type = filters.get("file_type")
-            if file_type:
+            if file_type and isinstance(file_type, str):
                 qs = qs.filter(document__file_type=file_type)
 
             # 3. Visibility
             visibility = filters.get("visibility")
-            if visibility:
+            if visibility and isinstance(visibility, str):
                 qs = qs.filter(document__visibility=visibility)
 
             # 4. Date ranges
+            def _parse_dt(val):
+                if isinstance(val, (date, datetime)):
+                    return val
+                try:
+                    from django.utils.dateparse import parse_date, parse_datetime
+                    return parse_datetime(str(val)) or parse_date(str(val))
+                except Exception:
+                    return None
+
             created_after = filters.get("created_after") or filters.get("date_from")
-            if created_after:
-                qs = qs.filter(document__created_at__gte=created_after)
+            if created_after and (dt := _parse_dt(created_after)):
+                if isinstance(dt, datetime):
+                    qs = qs.filter(document__created_at__gte=dt)
+                else:
+                    qs = qs.filter(document__created_at__date__gte=dt)
 
             created_before = filters.get("created_before") or filters.get("date_to")
-            if created_before:
-                qs = qs.filter(document__created_at__lte=created_before)
+            if created_before and (dt := _parse_dt(created_before)):
+                if isinstance(dt, datetime):
+                    qs = qs.filter(document__created_at__lte=dt)
+                else:
+                    qs = qs.filter(document__created_at__date__lte=dt)
 
-            # 5. Arbitrary key-value metadata lookups
+            # 5. Arbitrary key-value metadata lookups (strictly sanitize keys against ORM lookup traversal)
             meta_filters = filters.get("metadata")
             if meta_filters and isinstance(meta_filters, dict):
                 for k, v in meta_filters.items():
-                    qs = qs.filter(
-                        Q(**{f"metadata__{k}": v}) | Q(**{f"document__metadata__{k}": v})
-                    )
+                    if isinstance(k, str) and re.match(r"^[a-zA-Z0-9_-]+$", k) and "__" not in k:
+                        qs = qs.filter(
+                            Q(**{f"metadata__{k}__exact": v})
+                            | Q(**{f"document__metadata__{k}__exact": v})
+                        )
 
         return qs.distinct()
 
@@ -203,6 +234,8 @@ class RetrievalService:
             for chunk in ranked_qs:
                 dist = float(chunk.distance) if chunk.distance is not None else 1.0
                 sim = max(0.0, min(1.0, 1.0 - dist))
+                if sim < 0.15:
+                    continue
                 results.append(
                     {
                         "chunk_id": str(chunk.id),
@@ -231,7 +264,8 @@ class RetrievalService:
             else:
                 dist = 0.5
                 sim = 0.5
-            scored.append((dist, sim, chunk))
+            if sim >= 0.15:
+                scored.append((dist, sim, chunk))
 
         scored.sort(key=lambda x: x[0])
         return [
@@ -262,7 +296,19 @@ class RetrievalService:
         In PostgreSQL: uses native full-text search (tsvector, tsquery, SearchRank).
         In test fallback: uses token keyword overlap with term frequency scoring.
         """
-        words = [w.lower() for w in re.findall(r"\w+", query) if len(w) > 2]
+        stopwords = {
+            "what", "when", "where", "which", "who", "whom", "this", "that", "these",
+            "those", "am", "is", "are", "was", "were", "be", "been", "being", "have",
+            "has", "had", "having", "do", "does", "did", "doing", "would", "should",
+            "could", "the", "and", "but", "if", "or", "because", "as", "until", "while",
+            "of", "at", "by", "for", "with", "about", "against", "between", "into",
+            "through", "during", "before", "after", "above", "below", "to", "from",
+            "up", "down", "in", "out", "on", "off", "over", "under", "again", "further",
+            "then", "once", "here", "there", "all", "any", "both", "each", "few",
+            "more", "most", "other", "some", "such", "no", "nor", "not", "only",
+            "own", "same", "so", "than", "too", "very", "can", "will", "just", "now",
+        }
+        words = [w.lower() for w in re.findall(r"\w+", query) if len(w) > 2 and w.lower() not in stopwords]
         if not words:
             return []
 

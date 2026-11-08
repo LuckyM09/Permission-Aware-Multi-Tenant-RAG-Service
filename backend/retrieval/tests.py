@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.context import UserContext
+from accounts.middleware import set_tenant_db_context
 from documents.models import Chunk, Document, DocumentPermission
 from ingestion.embedder import EmbeddingAdapter
 from retrieval.services import RetrievalService
@@ -63,6 +64,7 @@ class RetrievalEngineTests(TestCase):
         )  # Charlie is in HR
 
         # 5. Seed Documents and Chunks in Acme Corp
+        set_tenant_db_context(str(self.tenant_acme.id))
         # A. Tenant-Wide Document
         self.doc_handbook = Document.objects.create(
             tenant=self.tenant_acme,
@@ -115,6 +117,7 @@ class RetrievalEngineTests(TestCase):
         )
 
         # 6. Seed Document in Beta Labs (Mallory's tenant)
+        set_tenant_db_context(str(self.tenant_beta.id))
         self.doc_beta = Document.objects.create(
             tenant=self.tenant_beta,
             owner=self.mallory,
@@ -130,7 +133,12 @@ class RetrievalEngineTests(TestCase):
             "Beta Labs is developing quantum computing chips in secret stealth mode.",
         )
 
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
+
     def _create_chunk(self, tenant, document, position, text):
+        set_tenant_db_context(str(tenant.id))
         embedding = self.embedder.get_embedding(text)
         return Chunk.objects.create(
             tenant=tenant,
@@ -386,6 +394,7 @@ class RetrievalAPITests(TestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {self.token}")
 
         # Seed document
+        set_tenant_db_context(str(self.tenant.id))
         self.embedder = EmbeddingAdapter()
         self.doc = Document.objects.create(
             tenant=self.tenant,
@@ -402,6 +411,10 @@ class RetrievalAPITests(TestCase):
             text=text,
             embedding=self.embedder.get_embedding(text),
         )
+
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
 
     def test_unauthenticated_request_rejected(self):
         """Unauthenticated requests must be rejected with 401."""

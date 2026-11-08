@@ -1,6 +1,7 @@
 import hashlib
 import logging
 import math
+import re
 from typing import Optional
 
 from decouple import config
@@ -49,7 +50,7 @@ class EmbeddingAdapter:
             self.api_key
             and not self.api_key.startswith("your_")
             and len(self.api_key) > 10
-            and not any(arg in sys.argv for arg in ["test", "run_ragas_eval"])
+            and not any(arg in sys.argv for arg in ["test", "pytest"])
         )
 
         if self.is_configured:
@@ -62,6 +63,13 @@ class EmbeddingAdapter:
         else:
             self.langchain_embeddings = None
 
+    @property
+    def allows_mock(self) -> bool:
+        """Mock fallback is strictly permitted in local development/tests only."""
+        from django.conf import settings
+
+        return getattr(settings, "ALLOW_MOCK_AI_FALLBACK", getattr(settings, "DEBUG", False))
+
     def get_embedding(self, text: str) -> list[float]:
         return self.get_embeddings_batch([text])[0]
 
@@ -73,31 +81,42 @@ class EmbeddingAdapter:
             try:
                 return self.langchain_embeddings.embed_documents(texts)
             except Exception as exc:
-                logger.warning(
-                    f"[EmbeddingAdapter] LangChain NIM embedding call failed: {exc}. Falling back to mock generator."
+                logger.error(
+                    f"[EmbeddingAdapter] LangChain NIM embedding call failed: {exc}"
                 )
+                if self.allows_mock:
+                    return [self._generate_deterministic_embedding(t) for t in texts]
+                raise
 
-        # Deterministic semantic unit vector fallback for local development & CI
-        return [self._generate_deterministic_embedding(t) for t in texts]
+        if self.allows_mock:
+            # Deterministic semantic unit vector fallback for local development & CI
+            return [self._generate_deterministic_embedding(t) for t in texts]
+
+        raise RuntimeError(
+            "Embedding model is not configured. A valid NVIDIA_API_KEY or OPENAI_API_KEY is required in production."
+        )
+
+    def _stem(self, word: str) -> str:
+        for suffix in ["ing", "ies", "es", "ed", "s"]:
+            if word.endswith(suffix) and len(word) > len(suffix) + 2:
+                return word[: -len(suffix)]
+        return word
 
     def _generate_deterministic_embedding(self, text: str) -> list[float]:
         """
         Generates a deterministic 2,048-dimensional normalized unit vector
-        seeded from the text's SHA-256 and word tokens.
+        seeded from token hashes and signs. Unrelated vocabularies yield near-zero
+        cosine similarity, preventing false-positive vector recall in tests.
         """
-        words = text.lower().split()
+        words = re.findall(r"\w+", text.lower())
         vector = [0.0] * self.DIMENSIONS
 
         for i, word in enumerate(words):
-            # Seed vector coordinates based on word hash
-            h = int(hashlib.sha256(word.encode()).hexdigest(), 16)
+            stemmed = self._stem(word)
+            h = int(hashlib.sha256(stemmed.encode()).hexdigest(), 16)
             idx = h % self.DIMENSIONS
-            vector[idx] += 1.0 / (math.log(i + 2) + 1.0)
-
-        # Base seed from entire text to avoid all-zero vectors
-        text_hash = hashlib.sha256(text.encode()).digest()
-        for i in range(min(len(text_hash), self.DIMENSIONS)):
-            vector[i] += float(text_hash[i]) / 255.0
+            sign = 1.0 if (h >> 16) % 2 == 0 else -1.0
+            vector[idx] += sign * (1.0 / (math.log(i + 2) + 1.0))
 
         # Normalize to unit length (L2 norm = 1.0) for cosine distance
         norm = math.sqrt(sum(x * x for x in vector))

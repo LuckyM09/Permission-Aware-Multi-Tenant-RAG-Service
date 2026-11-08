@@ -1,14 +1,54 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { DevUserSwitcher } from "@/components/dev-user-switcher";
+import {
+  Shield,
+  Lock,
+  ArrowRight,
+  AlertCircle,
+  Building2,
+  Mail,
+  Eye,
+  EyeOff,
+  User,
+  Sparkles,
+  CheckCircle2,
+} from "lucide-react";
+import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
+import { Alert } from "@/components/ui/alert";
+import { LockInput } from "@/components/ui/lock-input";
+import { LiquidRippleButton } from "@/components/ui/liquid-ripple-button";
 
 export default function LoginPage() {
   const router = useRouter();
+
+  const [currentUserSession, setCurrentUserSession] = useState<{
+    authenticated: boolean;
+    user?: { email: string; full_name?: string };
+    context?: { role: string; is_admin: boolean };
+    tenants?: Array<{ name: string; slug: string; is_current: boolean }>;
+  } | null>(null);
+
+  React.useEffect(() => {
+    document.title = "Sign In | VaultRAG Enterprise";
+
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : { authenticated: false }))
+      .then((data) => {
+        if (data?.authenticated) {
+          setCurrentUserSession(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [tenantSlug, setTenantSlug] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,120 +62,189 @@ export default function LoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email.trim().toLowerCase(),
           password,
-          tenant_slug: tenantSlug || undefined,
+          tenant_slug: tenantSlug.trim() || undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        throw new Error(data.error || "Authentication failed. Check your email, password, and organization slug.");
       }
 
-      router.push("/");
+      const userRole = data.tenant?.role || data.context?.role || data.user?.role;
+      if (userRole === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/chat");
+      }
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to sign in.");
+      setError(err instanceof Error ? err.message : "Unable to sign in. Verify your credentials and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090D16] text-slate-100">
-      <DevUserSwitcher onSwitched={() => router.push("/")} />
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#0F172A] selection:bg-[#0F172A]/10">
+      <AppHeader
+        userEmail={currentUserSession?.user?.email}
+        tenantName={currentUserSession?.tenants?.find((t) => t.is_current)?.name}
+        role={currentUserSession?.context?.role}
+      />
 
-      <div className="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
-        {/* Ambient Glow */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-indigo-600/10 blur-[130px] rounded-full pointer-events-none" />
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 py-10 sm:py-14 relative overflow-hidden">
+        {/* Subtle Ambient Glow */}
+        <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#00D2FF]/5 rounded-full blur-3xl" />
 
-        <div className="w-full max-w-md p-8 rounded-2xl border border-slate-800 bg-[#0F172A]/90 backdrop-blur-md shadow-2xl relative z-10 space-y-6">
+        <div className="w-full max-w-md p-8 sm:p-10 rounded-2xl border border-[#E6E6E1] bg-white shadow-elevated relative z-10 space-y-6">
+          {/* Card Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium">
-              VaultRAG Authentication
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-100">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
               Sign In to Your Workspace
             </h1>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs sm:text-sm text-[#52525B]">
               Authenticate with your tenant-scoped enterprise credentials
             </p>
           </div>
 
-          {error && (
-            <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-300 text-xs">
-              {error}
+          {/* Already Logged In Notice */}
+          {currentUserSession?.authenticated && (
+            <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/70 text-xs text-[#0F172A] space-y-3">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-emerald-950">
+                    Already signed in as {currentUserSession.user?.email}
+                  </p>
+                  <p className="text-emerald-800 text-[11px] mt-0.5">
+                    Tenant: <strong>{currentUserSession.tenants?.find((t) => t.is_current)?.name || "Active Workspace"}</strong>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <Link
+                  href={currentUserSession?.context?.is_admin ? "/admin" : "/chat"}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#0F172A] text-white text-xs font-semibold hover:bg-[#1E293B] shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <span>{currentUserSession?.context?.is_admin ? "Continue to Admin Dashboard" : "Open Anti-Leak Chat"}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetch("/api/auth/logout", { method: "POST" });
+                    window.location.href = "/logout";
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                >
+                  Sign Out
+                </button>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300 block">
-                Work Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="alice@acme.com"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-              />
-            </div>
+          {/* EasyUI Alert Component */}
+          {error && (
+            <Alert variant="destructive" title="Authentication Error" dismissible onDismiss={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-300 block">
-                Password
-              </label>
-              <input
-                type="password"
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Work Email */}
+            <LockInput
+              label="Work Email"
+              id="login-email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="gregory@apexbio.com or alice@acme.com"
+              leftIcon={<Mail className="w-4 h-4" />}
+            />
+
+            {/* Password */}
+            <div className="relative">
+              <LockInput
+                label="Password"
+                id="login-password"
+                type={showPassword ? "text" : "password"}
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-700 bg-slate-900/80 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                leftIcon={<Lock className="w-4 h-4" />}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-[34px] text-[#94A3B8] hover:text-[#0F172A] transition-colors cursor-pointer z-10"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-slate-400 block flex items-center justify-between">
-                <span>Organization Slug (Optional)</span>
-                <span className="text-[10px] text-slate-500">e.g. acme-corp</span>
-              </label>
-              <input
-                type="text"
-                value={tenantSlug}
-                onChange={(e) => setTenantSlug(e.target.value)}
-                placeholder="Leave blank for default"
-                className="w-full px-3.5 py-2 rounded-lg border border-slate-800 bg-slate-900/50 text-xs text-slate-300 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
-              />
-            </div>
+            {/* Optional Organization Slug */}
+            <LockInput
+              label="Organization Slug (Optional)"
+              description="Leave blank for default primary organization (e.g. apex-biotech)"
+              id="login-tenant"
+              type="text"
+              autoComplete="organization"
+              value={tenantSlug}
+              onChange={(e) => setTenantSlug(e.target.value)}
+              placeholder="apex-biotech"
+              leftIcon={<Building2 className="w-4 h-4" />}
+            />
 
-            <button
+            {/* Submit Button */}
+            <LiquidRippleButton
               type="submit"
+              variant="dark"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-medium text-sm text-white shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              showIcon={false}
+              className="w-full min-h-12 py-3 px-4 rounded-xl text-xs sm:text-sm font-semibold flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Authenticating...</span>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Authenticating Session...</span>
                 </>
               ) : (
-                <span>Sign In</span>
+                <>
+                  <span>Sign In to Workspace</span>
+                  <ArrowRight className="w-4 h-4 text-[#00D2FF]" />
+                </>
               )}
-            </button>
+            </LiquidRippleButton>
           </form>
 
-          <div className="pt-2 border-t border-slate-800/80 text-center">
-            <p className="text-[11px] text-slate-500">
-              Demo environment: Use the quick-switcher bar at the top for 1-click access.
+          {/* Quick Registration Link */}
+          <div className="pt-4 border-t border-[#E6E6E1] text-center space-y-2">
+            <p className="text-xs text-[#52525B]">
+              Need to register a new company or workspace?
             </p>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#0284C7] hover:text-[#0F172A] underline underline-offset-4 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#00D2FF]" />
+              <span>Create Tenant Organization & Workspace</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </div>
-      </div>
+      </main>
+
+      <AppFooter />
     </div>
   );
 }

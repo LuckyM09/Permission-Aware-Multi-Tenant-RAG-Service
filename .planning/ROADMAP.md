@@ -6,12 +6,12 @@
   - Monorepo layout, Docker Compose (Postgres+pgvector, Redis, Django, Next.js), base settings.
 - [x] **Phase 1: Multi-Tenancy & Authentication (M1)**
   - Custom User model, Tenant, Membership, Groups, JWT with UserContext, DevUserSwitcher.
-- [x] **Phase 2: Multimodal Document Ingestion (M2)**
-  - PyMuPDF layout-aware table extraction, vector clustering, VLM captions with Llama 3.2 11B Vision, Nemotron embeddings (2048 dims, HNSW halfvec), Celery pipeline.
+- [x] **Phase 2: High-Fidelity Document Ingestion (M2)**
+  - PyMuPDF layout-aware text & table extraction, Unstructured document parsing, Nemotron embeddings (2048 dims, pgvector HNSW), async Celery pipeline. (Multimodal VLM image captioning with Llama 3.2 11B Vision scoped for future enterprise extension).
 - [x] **Phase 3: Access Control & Permissions Engine (M3)**
   - Visibility rules (`private`, `group`, `tenant`), `document_permissions`, single source of truth authorization service, 100% passing test matrix.
 - [x] **Phase 4: Filtered Retrieval & Chat Engine (M4)**
-  - `VaultRAGRetriever` with SQL vector pre-filtering, LangChain LCEL chain with Llama 3.2 11B Vision, SSE streaming, citation side panel, Anti-Leak citation shield.
+  - `VaultRAGRetriever` with SQL vector pre-filtering, LangChain LCEL chain with NVIDIA Nemotron 3.5, SSE streaming, citation side panel, Anti-Leak citation shield.
 - [x] **Phase 5: PostgreSQL RLS, Append-Only Audit Logging & Hardening (M5)** *(COMPLETED)*
   - PostgreSQL `FORCE ROW LEVEL SECURITY` on documents and chunks using `app.tenant_id`.
   - Transaction-scoped connection middleware executing `set_config('app.tenant_id', ...)`.

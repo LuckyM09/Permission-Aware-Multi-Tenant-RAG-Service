@@ -1,6 +1,26 @@
 from rest_framework import serializers
 
-from tenants.models import Group, GroupMember, Membership, Role
+from tenants.models import ContactInquiry, Group, GroupMember, Membership, Role
+
+
+class ContactInquirySerializer(serializers.ModelSerializer):
+    """
+    Serializes enterprise contact inquiries from the public landing page.
+    """
+
+    class Meta:
+        model = ContactInquiry
+        fields = [
+            "id",
+            "full_name",
+            "work_email",
+            "company_name",
+            "inquiry_type",
+            "team_size",
+            "use_case",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
 
 
 class TenantMemberSerializer(serializers.ModelSerializer):
@@ -142,3 +162,21 @@ class AccessExplorerResponseSerializer(serializers.Serializer):
     accessible_documents = serializers.IntegerField()
     denied_documents = serializers.IntegerField()
     documents = AccessExplorerDocumentSerializer(many=True)
+
+
+class TenantRegistrationSerializer(serializers.Serializer):
+    """
+    Validates self-service tenant registration requests.
+    Creates a new Tenant, initial Admin User, Membership, and default Groups.
+    """
+
+    company_name = serializers.CharField(max_length=255, min_length=2)
+    company_slug = serializers.SlugField(max_length=255, required=False, allow_blank=True)
+    admin_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    admin_email = serializers.EmailField()
+    admin_password = serializers.CharField(min_length=8, write_only=True)
+    departments = serializers.ListField(
+        child=serializers.CharField(max_length=150),
+        required=False,
+        default=list,
+    )

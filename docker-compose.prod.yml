@@ -10,15 +10,17 @@ services:
     restart: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-vaultrag_db}
-      POSTGRES_USER: ${POSTGRES_USER:-vaultrag_app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password must be set in production}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER:-vaultrag_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Admin database password must be set in production}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-vaultrag_user}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Application database password must be set}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_prod_data:/var/lib/postgresql/data
-      - ./infra/scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+      - ./infra/scripts/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vaultrag_app} -d ${POSTGRES_DB:-vaultrag_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ADMIN_USER:-vaultrag_admin} -d ${POSTGRES_DB:-vaultrag_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -47,6 +49,32 @@ services:
       - vaultrag-prod-net
 
   # ---------------------------------------------------------------------------
+  # 2b. Database Migration & Static Collection Runner (One-Shot)
+  # ---------------------------------------------------------------------------
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: ../infra/docker/backend/Dockerfile.prod
+    container_name: vaultrag-migrate-prod
+    command: ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput"]
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB_USER=${POSTGRES_ADMIN_USER:-vaultrag_admin}
+      - POSTGRES_DB_PASSWORD=${POSTGRES_ADMIN_PASSWORD:?Admin database password must be set in production}
+      - RLS_ALLOW_PRIVILEGED_ROLE=true
+    volumes:
+      - backend_static:/app/staticfiles
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vaultrag-prod-net
+
+  # ---------------------------------------------------------------------------
   # 3. Django Production Backend (Gunicorn, Non-Root)
   # ---------------------------------------------------------------------------
   backend:
@@ -61,6 +89,8 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
+      - POSTGRES_APP_USER=${POSTGRES_APP_USER:-vaultrag_user}
+      - POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD:?Application database password must be set}
       - REDIS_HOST=redis
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
@@ -74,6 +104,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
       interval: 10s
@@ -99,6 +131,8 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings.prod
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
+      - POSTGRES_APP_USER=${POSTGRES_APP_USER:-vaultrag_user}
+      - POSTGRES_APP_PASSWORD=${POSTGRES_APP_PASSWORD:?Application database password must be set}
       - REDIS_HOST=redis
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
@@ -109,6 +143,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - vaultrag-prod-net
 

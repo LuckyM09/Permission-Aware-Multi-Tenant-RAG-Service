@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.context import UserContext
+from accounts.middleware import set_tenant_db_context
 from chat.assembler import AntiLeakShield, ContextAssembler
 from documents.models import Chunk, Document, DocumentPermission
 from ingestion.embedder import EmbeddingAdapter
@@ -108,6 +109,7 @@ class AdversarialLeakageTestSuite(TestCase):
         content: str,
         group: Group | None = None,
     ) -> Document:
+        set_tenant_db_context(str(tenant.id))
         doc = Document.objects.create(
             tenant=tenant,
             owner=owner,

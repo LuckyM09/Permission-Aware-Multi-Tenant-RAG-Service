@@ -208,7 +208,41 @@ class ChatService:
         """
         SSE Streaming generator for real-time token delivery to the client via LangChain LCEL.
         Yields Server-Sent Event formatted chunks.
+        Binds PostgreSQL tenant RLS context for the entire generator lifecycle so retrieval
+        and message persistence succeed under strict FORCE RLS.
         """
+        from accounts.middleware import set_tenant_db_context
+
+        set_tenant_db_context(user_ctx.tenant_id)
+        try:
+            yield from self._stream_chat_response_inner(
+                user_ctx=user_ctx,
+                query=query,
+                conversation_id=conversation_id,
+                top_k=top_k,
+                threshold=threshold,
+                mode=mode,
+                rerank=rerank,
+                filters=filters,
+                expand_parent=expand_parent,
+                query_expansion=query_expansion,
+            )
+        finally:
+            set_tenant_db_context(None)
+
+    def _stream_chat_response_inner(
+        self,
+        user_ctx: UserContext,
+        query: str,
+        conversation_id: str | None = None,
+        top_k: int = 5,
+        threshold: float = 0.25,
+        mode: str = "hybrid",
+        rerank: bool = True,
+        filters: dict[str, Any] | None = None,
+        expand_parent: bool = True,
+        query_expansion: bool = False,
+    ) -> Iterator[str]:
         start_time = time.perf_counter()
         conversation = self.get_or_create_conversation(
             user_ctx, conversation_id, initial_title=query[:50]

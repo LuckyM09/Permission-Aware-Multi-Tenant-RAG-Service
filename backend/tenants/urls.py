@@ -2,14 +2,20 @@ from django.urls import path
 
 from tenants.views import (
     AccessExplorerView,
+    ContactInquiryView,
     TenantGroupDetailView,
     TenantGroupListCreateView,
     TenantGroupMemberManageView,
     TenantMemberDetailView,
     TenantMemberListCreateView,
+    TenantRegistrationView,
 )
 
 urlpatterns = [
+    # Enterprise Contact & Pilot Inquiry
+    path("inquiry/", ContactInquiryView.as_view(), name="tenant_contact_inquiry"),
+    # Tenant Self-Service Registration
+    path("register/", TenantRegistrationView.as_view(), name="tenant_register"),
     # Tenant Members
     path("members/", TenantMemberListCreateView.as_view(), name="tenant_member_list_create"),
     path("members/<uuid:pk>/", TenantMemberDetailView.as_view(), name="tenant_member_detail"),

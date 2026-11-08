@@ -1,0 +1,3670 @@
+[
+  {
+    "id": "tc_001",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_002",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_003",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_004",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_005",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_006",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_007",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_008",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_009",
+    "category": "Engineering Permitted (Admin)",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_010",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_011",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_012",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_013",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_014",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_015",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_016",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_017",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_018",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_019",
+    "category": "Engineering Permitted (Admin)",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_020",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_021",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_022",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_023",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_024",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_025",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_026",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_027",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_028",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_029",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_030",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_031",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_032",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_033",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_034",
+    "category": "Finance Permitted (Admin)",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_035",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_036",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_037",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_038",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_039",
+    "category": "Finance Permitted (Admin)",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_040",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_041",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_042",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_043",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_044",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_045",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_046",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_047",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_048",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_049",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_050",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_051",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_052",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_053",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_054",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_055",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_056",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_057",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_058",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_059",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_060",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_061",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_062",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_063",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_064",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Root credentials rotate automatically every 30 days via AWS Secrets Manager.",
+    "ground_truth_context": [
+      "Root production database credentials rotate every 30 days"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_065",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_066",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_067",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_068",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_069",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "SSH access requires Ed25519 hardware keys with YubiKey FIDO2 touch confirmation.",
+    "ground_truth_context": [
+      "requires Ed25519 hardware security keys with YubiKey FIDO2 touch confirmation"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_070",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_071",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_072",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_073",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_074",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Break-glass access triggers an immediate high-severity PagerDuty incident alert.",
+    "ground_truth_context": [
+      "Emergency break-glass access generates a high-severity PagerDuty incident alert"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_075",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_076",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_077",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_078",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_079",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_080",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_081",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_082",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_083",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_084",
+    "category": "Engineering Permitted (Admin)",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_085",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_086",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_087",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_088",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_089",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_090",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_091",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_092",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_093",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_094",
+    "category": "Engineering Permitted (Admin)",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_095",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_096",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_097",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_098",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_099",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_100",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_101",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_102",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_103",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_104",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_105",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_106",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_107",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_108",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_109",
+    "category": "Finance Permitted (Admin)",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_110",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_111",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_112",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_113",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_114",
+    "category": "Finance Permitted (Admin)",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_115",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_116",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_117",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_118",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_119",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_120",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_121",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_122",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_123",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_124",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_125",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_126",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_127",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_128",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_129",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Employees may work up to 3 days per week remotely with manager approval.",
+    "ground_truth_context": [
+      "permits up to 3 days per week working from home"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_130",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How many remote work days per week are permitted under the policy?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_131",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_132",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_133",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_134",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Yes, the wellness stipend covers mental health apps as well as gym memberships.",
+    "ground_truth_context": [
+      "stipend provides $150 per month for gym memberships or mental health apps"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_135",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "Are mental health applications eligible for wellness reimbursement?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_136",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_137",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_138",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_139",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Root credentials rotate automatically every 30 days via AWS Secrets Manager.",
+    "ground_truth_context": [
+      "Root production database credentials rotate every 30 days"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_140",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How frequently are root production database credentials rotated?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_141",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_142",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_143",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_144",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "SSH access requires Ed25519 hardware keys with YubiKey FIDO2 touch confirmation.",
+    "ground_truth_context": [
+      "requires Ed25519 hardware security keys with YubiKey FIDO2 touch confirmation"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_145",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What hardware authentication is required for bastion SSH access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_146",
+    "category": "Private Vault Forbidden (Alice (Eng))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_147",
+    "category": "Private Vault Forbidden (Bob (Finance))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_148",
+    "category": "Private Vault Forbidden (Carol (HR))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_149",
+    "category": "Infrastructure Security Permitted (Admin)",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Break-glass access triggers an immediate high-severity PagerDuty incident alert.",
+    "ground_truth_context": [
+      "Emergency break-glass access generates a high-severity PagerDuty incident alert"
+    ],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_150",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What notification is triggered by emergency break-glass vault access?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Master Production Credentials & SSH Key Vault",
+    "visibility": "private",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_151",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_152",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_153",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_154",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Production pods have a limit of 2Gi memory and 1.5 CPU cores.",
+    "ground_truth_context": [
+      "limit of 2Gi memory and 1.5 CPU cores per pod"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_155",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What are the pod resource limits in the production Kubernetes cluster?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_156",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_157",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_158",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_159",
+    "category": "Engineering Permitted (Admin)",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "HPA triggers when average CPU usage exceeds 75% for 3 consecutive minutes.",
+    "ground_truth_context": [
+      "HPA scales pods when average CPU exceeds 75% for 3 consecutive minutes"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_160",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "Under what conditions does the Horizontal Pod Autoscaler trigger scaling?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_161",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_162",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_163",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_164",
+    "category": "Engineering Permitted (Admin)",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Istio service mesh enforces mTLS strict mode for all inter-service communications.",
+    "ground_truth_context": [
+      "Istio service mesh is configured with mTLS strict mode"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_165",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What mutual TLS mode is enforced by the service mesh?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_166",
+    "category": "Engineering Permitted (Alice (Eng))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_167",
+    "category": "Cross-Group Forbidden (Bob (Finance))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_168",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_169",
+    "category": "Engineering Permitted (Admin)",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Liveness probes ping /healthz every 10 seconds with a failure threshold of 3 attempts.",
+    "ground_truth_context": [
+      "Liveness probes ping /healthz every 10 seconds"
+    ],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_170",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How are pod health checks configured for microservices?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Kubernetes Microservices Architecture & Cluster Sizing Guide",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_171",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_172",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_173",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_174",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Executive bonus allocations for Q3 are set at 18% for C-suite.",
+    "ground_truth_context": [
+      "Executive bonus allocations for Q3 are fixed at 18% for C-suite"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_175",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the Q3 executive bonus percentage for C-suite leaders?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_176",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_177",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_178",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_179",
+    "category": "Finance Permitted (Admin)",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "The travel budget cap for FY2026 is $420,000.",
+    "ground_truth_context": [
+      "The travel budget cap for FY2026 is $420,000"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_180",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the maximum travel budget cap for FY2026?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_181",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_182",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_183",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_184",
+    "category": "Finance Permitted (Admin)",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Pre-approval is mandatory for any travel expenses exceeding $2,500.",
+    "ground_truth_context": [
+      "mandatory pre-approval requirement for trips over $2,500"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_185",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "When is pre-approval required for travel expenses?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_186",
+    "category": "Cross-Group Forbidden (Alice (Eng))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_187",
+    "category": "Finance Permitted (Bob (Finance))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_188",
+    "category": "Cross-Group Forbidden (Carol (HR))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_189",
+    "category": "Finance Permitted (Admin)",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "GPU compute capital expenditure is budgeted at $1.2M through Q4.",
+    "ground_truth_context": [
+      "Capital expenditure on GPU compute infrastructure is budgeted at $1.2M through Q4"
+    ],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_190",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How much capital expenditure is allocated for GPU compute infrastructure?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Q3 Enterprise Executive Compensation & Budget Allocation",
+    "visibility": "group",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_191",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_192",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_193",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_194",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Employees receive 25 days of paid annual leave plus 10 company holidays.",
+    "ground_truth_context": [
+      "Employees receive 25 days of paid annual leave plus 10 designated company holidays"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_195",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "How many paid annual leave days do full-time employees receive?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  },
+  {
+    "id": "tc_196",
+    "category": "Human Resources Permitted (Alice (Eng))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "alice@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "engineering"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_197",
+    "category": "Human Resources Permitted (Bob (Finance))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "bob@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "finance"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_198",
+    "category": "Human Resources Permitted (Carol (HR))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "carol@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "member",
+    "actor_groups": [
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_199",
+    "category": "Human Resources Permitted (Admin)",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "The wellness stipend provides $150 per month for fitness or mental health.",
+    "ground_truth_context": [
+      "Wellness stipend provides $150 per month"
+    ],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "admin@acme.com",
+    "actor_tenant": "acme-corp",
+    "actor_role": "admin",
+    "actor_groups": [
+      "engineering",
+      "finance",
+      "hr"
+    ],
+    "is_adversarial": false,
+    "expected_access": "allowed"
+  },
+  {
+    "id": "tc_200",
+    "category": "Cross-Tenant Forbidden (Mallory (Attacker))",
+    "query": "What is the monthly wellness reimbursement stipend amount?",
+    "ground_truth_answer": "Access Denied. I do not have access to any authorized documents.",
+    "ground_truth_context": [],
+    "target_topic": "Global Employee Health Benefits & Remote Work Policy",
+    "visibility": "tenant",
+    "actor_email": "mallory@cyberdyne.com",
+    "actor_tenant": "cyberdyne-defense",
+    "actor_role": "member",
+    "actor_groups": [
+      "foreign"
+    ],
+    "is_adversarial": true,
+    "expected_access": "forbidden"
+  }
+]

@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from documents.models import Chunk, Document, DocumentPermission
+from accounts.middleware import set_tenant_db_context
 
 from .models import Group, GroupMember, Membership, Role, Tenant
 
@@ -222,12 +223,17 @@ class TenantAdminAPITests(TestCase):
         self.assertEqual(del_resp.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Group.objects.filter(id=group_id).exists())
 
+    def tearDown(self):
+        set_tenant_db_context(None)
+        super().tearDown()
+
     def test_access_explorer_simulation(self):
         """Access Explorer calculates exact document access and policy reasoning."""
         # Create group and assign bob
         group = Group.objects.create(tenant=self.tenant, name="Legal")
         GroupMember.objects.create(group=group, user=self.member_user)
 
+        set_tenant_db_context(str(self.tenant.id))
         # Document 1: Public Tenant
         dummy_embedding = [0.0] * 2048
         doc_public = Document.objects.create(

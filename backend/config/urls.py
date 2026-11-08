@@ -10,7 +10,7 @@ from django.urls import include, path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.tokens import VaultRAGTokenObtainPairView
-from accounts.views import CurrentUserView
+from accounts.views import CurrentUserView, LogoutView
 from config.views import LivenessCheckView, ReadinessCheckView
 from documents.views import DocumentDetailView, DocumentListCreateView
 
@@ -41,6 +41,7 @@ urlpatterns = [
         name="token_obtain_pair",
     ),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/auth/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/me/", CurrentUserView.as_view(), name="auth_me"),
     # Document Ingestion & Management
     path(

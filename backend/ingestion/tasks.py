@@ -4,6 +4,7 @@ import re
 from celery import shared_task
 from django.db import transaction
 
+from accounts.middleware import set_tenant_db_context
 from documents.models import Chunk, Document
 
 from .chunker import RecursiveTextChunker
@@ -21,25 +22,31 @@ def find_chunk_page(full_text: str, char_start: int) -> int:
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=5)
-def ingest_document_task(self, document_id: str):
+def ingest_document_task(self, document_id: str, tenant_id: str | None = None):
     """
-    Asynchronous Celery pipeline that extracts text and tabular data using
-    PyMuPDF and unstructured, generates dense vector embeddings, and transactionally
-    persists document chunks without VLM/image-extraction overhead.
+    Asynchronous Celery pipeline that extracts text and structured tabular data
+    using PyMuPDF and Unstructured, generates dense vector embeddings, and
+    transactionally persists document chunks under strict tenant RLS isolation.
     """
     try:
-        document = Document.objects.select_related("tenant").get(id=document_id)
-    except Document.DoesNotExist:
-        logger.error(f"[Ingestion] Document {document_id} not found.")
-        return
+        if tenant_id:
+            set_tenant_db_context(tenant_id)
 
-    logger.info(
-        f"[Ingestion] Starting processing for Document {document.id} ('{document.title}')"
-    )
-    document.status = Document.Status.PROCESSING
-    document.save(update_fields=["status", "updated_at"])
+        try:
+            document = Document.objects.select_related("tenant").get(id=document_id)
+        except Document.DoesNotExist:
+            logger.error(f"[Ingestion] Document {document_id} not found.")
+            return
 
-    try:
+        if not tenant_id:
+            set_tenant_db_context(document.tenant_id)
+
+        logger.info(
+            f"[Ingestion] Starting processing for Document {document.id} ('{document.title}')"
+        )
+        document.status = Document.Status.PROCESSING
+        document.save(update_fields=["status", "updated_at"])
+
         # 1. Read file bytes
         if not document.file:
             raise ValueError("Document record has no associated file payload.")
@@ -117,3 +124,5 @@ def ingest_document_task(self, document_id: str):
         document.error_message = str(exc)
         document.save(update_fields=["status", "error_message", "updated_at"])
         raise self.retry(exc=exc) if self.request.retries < self.max_retries else exc
+    finally:
+        set_tenant_db_context(None)

@@ -184,7 +184,7 @@ docker compose up -d --build
 ### 3. Access Services
 - **Web App**: [http://localhost:3000](http://localhost:3000)
   - `/chat` — Multi-tenant streaming RAG chat
-  - `/documents` — Document registry & multimodal ingestion
+  - `/documents` — Document registry & text / tabular layout ingestion
   - `/admin` — Tenant user & group management & Visual Access Explorer
   - `/audit` — Immutable compliance ledger
 - **Backend API**: [http://localhost:8000/api/](http://localhost:8000/api/)

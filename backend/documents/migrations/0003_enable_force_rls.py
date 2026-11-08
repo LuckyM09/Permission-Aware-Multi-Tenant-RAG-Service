@@ -37,13 +37,17 @@ def apply_rls(apps, schema_editor):
         DO $$
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'vaultrag_user') THEN
-                CREATE ROLE vaultrag_user WITH LOGIN PASSWORD 'vaultrag_secure_password_dev' CREATEDB;
+                CREATE ROLE vaultrag_user NOLOGIN;
             END IF;
-            GRANT vaultrag_user TO CURRENT_USER;
+            IF CURRENT_USER <> 'vaultrag_user' THEN
+                EXECUTE 'GRANT vaultrag_user TO ' || quote_ident(CURRENT_USER);
+            END IF;
             GRANT ALL ON ALL TABLES IN SCHEMA public TO vaultrag_user;
             GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO vaultrag_user;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO vaultrag_user;
             ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO vaultrag_user;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'RLS role grant notice: %', SQLERRM;
         END $$;
     """)
 

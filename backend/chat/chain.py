@@ -90,10 +90,18 @@ class MockLangChainChatModel(BaseChatModel):
                     if "Question:" in user_content
                     else "the requested topic"
                 )
+                contents_found = re.findall(
+                    r"Content:\s*(.*?)(?:\n---|\[Document:|<\/context>|$)",
+                    context_str,
+                    re.DOTALL,
+                )
+                content_snippets = [c.strip() for c in contents_found if c.strip()]
+                substantive_answer = " ".join(content_snippets) if content_snippets else (
+                    f"the document specifies verified operational parameters for authorized users on page {page_num or 1}."
+                )
                 reply = (
                     f"Based on the authorized document '{doc_title}' [Doc: {doc_title}, Chunk: {chunk_id}], "
-                    f"here is the information regarding '{question[:60]}': the document specifies verified "
-                    f"operational parameters for authorized users on page {page_num or 1}."
+                    f"here is the information regarding '{question[:60]}': {substantive_answer}"
                 )
 
         generation = ChatGeneration(message=AIMessage(content=reply))

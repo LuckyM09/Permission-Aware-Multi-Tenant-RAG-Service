@@ -2,7 +2,29 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { DevUserSwitcher } from "@/components/dev-user-switcher";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  SlidersHorizontal,
+  Layers,
+  Cpu,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  Lock,
+  Users,
+  Building2,
+  Sparkles,
+  ShieldCheck,
+  Image as ImageIcon,
+  ExternalLink,
+  ChevronRight,
+  Shield,
+} from "lucide-react";
+import { AppHeader } from "@/components/app-header";
+import { AppFooter } from "@/components/app-footer";
+import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
 
 interface UserContextData {
   authenticated: boolean;
@@ -42,6 +64,7 @@ interface SearchResultItem {
 }
 
 export default function RetrievalPage() {
+  const router = useRouter();
   const [authData, setAuthData] = useState<UserContextData | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
@@ -85,8 +108,18 @@ export default function RetrievalPage() {
   }, []);
 
   useEffect(() => {
+    document.title = "Semantic Search | VaultRAG Enterprise";
     fetchSession();
   }, [fetchSession]);
+
+  useEffect(() => {
+    if (!authData) return;
+    if (!authData.authenticated) {
+      router.replace("/login");
+    } else if (!authData.context?.is_admin) {
+      router.replace("/chat");
+    }
+  }, [authData, router]);
 
   const handleSearch = async (e?: React.FormEvent, customQuery?: string) => {
     if (e) e.preventDefault();
@@ -99,6 +132,9 @@ export default function RetrievalPage() {
 
     setIsSearching(true);
     setSearchError("");
+    setResults(null);
+    setLatencyMs(null);
+
     const startTime = performance.now();
 
     try {
@@ -115,21 +151,18 @@ export default function RetrievalPage() {
         }),
       });
 
-      const elapsed = Math.round(performance.now() - startTime);
-      setLatencyMs(elapsed);
+      const data = await res.json().catch(() => ({}));
+      const endTime = performance.now();
+      setLatencyMs(Math.round(endTime - startTime));
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        setSearchError(errData.error || errData.detail || "Search request failed.");
-        setResults([]);
+        setSearchError(data.error || data.detail || `Search failed with status ${res.status}.`);
       } else {
-        const data = await res.json();
         setResults(data.results || []);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Network error during search";
       setSearchError(message);
-      setResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -137,176 +170,132 @@ export default function RetrievalPage() {
 
   const currentTenant = authData?.tenants?.find((t) => t.is_current);
 
+  if (authLoading || !authData) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <p className="text-xs text-[#64748B] font-mono mt-4">
+          Verifying semantic search authorization...
+        </p>
+      </div>
+    );
+  }
+
+  if (!authData.authenticated) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <p className="text-xs text-[#64748B] font-mono mt-4">
+          Authentication required. Redirecting to sign in...
+        </p>
+      </div>
+    );
+  }
+
+  if (!authData.context?.is_admin) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
+        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <p className="text-xs text-[#64748B] font-mono mt-4">
+          Member account verified. Redirecting to Anti-Leak Chat...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#090D16] text-slate-100 selection:bg-indigo-500 selection:text-white">
-      {/* Dev Persona Switcher */}
-      <DevUserSwitcher
-        currentEmail={authData?.user?.email}
-        onSwitched={() => {
-          fetchSession();
-          if (query) {
-            handleSearch(undefined, query);
-          }
-        }}
+    <div className="min-h-screen flex flex-col bg-[#FAF9F6] text-[#0F172A]">
+      {/* Global App Header */}
+      <AppHeader
+        userEmail={authData?.user?.email}
+        tenantName={currentTenant?.name}
+        role={authData?.context?.role}
+        onLogout={fetchSession}
       />
 
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-[#0F172A]/80 backdrop-blur-md sticky top-10 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link
-              href="/"
-              className="text-lg font-bold tracking-tight text-white hover:text-indigo-400 transition-colors flex items-center gap-2"
-            >
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center font-black text-white text-base shadow-md shadow-indigo-600/30">
-                V
-              </div>
-              <span>VaultRAG</span>
-            </Link>
-
-            <nav className="flex items-center gap-1 text-sm font-medium">
-              <Link
-                href="/"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                Overview
-              </Link>
-              <Link
-                href="/documents"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                Documents
-              </Link>
-              <Link
-                href="/retrieval"
-                className="px-3 py-1.5 rounded-md bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20"
-              >
-                Semantic Search
-              </Link>
-              <Link
-                href="/chat"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                💬 Chat Engine
-              </Link>
-              <Link
-                href="/audit"
-                className="px-3 py-1.5 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
-              >
-                🛡️ Audit Ledger
-              </Link>
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {authData?.authenticated && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-400">Org:</span>
-                <span className="px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 font-medium">
-                  {currentTenant?.name || "Acme Corp"}
-                </span>
-                <span className="text-slate-500">|</span>
-                <span className="text-slate-300 font-medium">{authData.user?.email}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-8">
         {/* Page Header */}
-        <div className="border-b border-slate-800 pb-6">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium tracking-wide mb-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Hybrid Search & Cross-Encoder Reranking
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E6E6E1] pb-6">
+          <div className="space-y-1.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#0F172A]">
+              Semantic Search &amp; Retrieval Studio
+            </h1>
+            <p className="text-xs sm:text-sm text-[#52525B] max-w-2xl leading-relaxed">
+              Test dense vector search, BM25 keyword matching, Reciprocal Rank Fusion, and cross-encoder
+              reranking. All queries enforce PostgreSQL Row-Level Security before scoring.
+            </p>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white">
-            Permission-Aware Hybrid Retrieval
-          </h1>
-          <p className="text-slate-400 text-sm mt-1 max-w-3xl">
-            Combines dense vector embeddings (pgvector cosine distance) with sparse keyword matching (PostgreSQL BM25)
-            via Reciprocal Rank Fusion (RRF) and Cross-Encoder Reranking.
-            Tenant isolation and ACL security filters are enforced strictly at the SQL level across all retrieval paths.
-          </p>
         </div>
 
-        {/* Active Security Context Banner */}
-        <div className="p-4 rounded-xl border border-slate-800 bg-[#0F172A]/70 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+        {/* Security Persona Banner */}
+        <div className="p-4 sm:p-5 rounded-2xl border border-[#E6E6E1] bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
           <div className="flex items-center gap-3">
-            <span className="text-slate-400 font-medium">Searching As:</span>
-            <span className="font-semibold text-white px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
-              {authData?.user?.email || "Resolving session..."}
-            </span>
-            <span className="px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 uppercase tracking-wider text-[10px] font-mono">
-              {authData?.context?.role || "viewer"}
-            </span>
+            <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 flex items-center justify-center text-[#0284C7] shrink-0">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-[#64748B]">Simulated Persona: </span>
+              <span className="font-bold text-[#0F172A] font-mono">
+                {authData?.user?.email || "Resolving..."}
+              </span>
+              <span className="text-[#CBD5E1] mx-2">•</span>
+              <span className="text-[#64748B]">Role: </span>
+              <span className="font-semibold text-[#0F172A] uppercase font-mono">
+                {authData?.context?.role || "—"}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">Granted Groups:</span>
+            <span className="text-[#64748B] font-medium">Active Groups:</span>
             {authData?.context?.groups && authData.context.groups.length > 0 ? (
               authData.context.groups.map((grp) => (
                 <span
                   key={grp}
-                  className="px-2 py-0.5 rounded-md border border-sky-500/30 bg-sky-500/10 text-sky-300 font-medium text-[11px]"
+                  className="px-2.5 py-0.5 rounded-md bg-[#FAF9F6] border border-[#E2E8F0] text-[11px] font-mono font-medium text-[#0F172A]"
                 >
                   {grp}
                 </span>
               ))
             ) : (
-              <span className="text-slate-500 italic">None</span>
+              <span className="text-[#94A3B8] italic">None</span>
             )}
           </div>
         </div>
 
         {/* Search Query Form */}
-        <div className="p-6 rounded-2xl border border-slate-800 bg-[#0F172A]/90 backdrop-blur-md shadow-xl space-y-6">
+        <section
+          aria-labelledby="retrieval-form-heading"
+          className="rounded-2xl border border-[#E6E6E1] bg-white p-6 sm:p-8 shadow-card space-y-6"
+        >
           <form onSubmit={handleSearch} className="space-y-5">
             {/* Main Input */}
             <div className="relative">
               <input
+                id="retrieval-query-input"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ask or search your documents (e.g. 'What are our annual wellness benefits?')"
-                className="w-full px-4 py-3.5 pl-11 rounded-xl bg-slate-900 border border-slate-700 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 shadow-inner transition-colors"
+                className="w-full px-4 py-3.5 pl-11 pr-32 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs sm:text-sm text-[#0F172A] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0F172A] focus:bg-white transition-all shadow-2xs"
               />
-              <svg
-                className="w-5 h-5 text-slate-500 absolute left-3.5 top-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+              <Search className="w-4 h-4 text-[#94A3B8] absolute left-4 top-4 pointer-events-none" />
 
               <button
                 type="submit"
                 disabled={!query.trim() || isSearching}
-                className="absolute right-2 top-2 px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white transition-all shadow-md shadow-indigo-600/30 flex items-center gap-2"
+                className="absolute right-2 top-2 px-5 py-2 rounded-lg bg-[#0F172A] hover:bg-[#1E293B] text-white active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
               >
                 {isSearching ? (
                   <>
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Searching...
+                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Searching...</span>
                   </>
                 ) : (
                   <>
                     <span>Search</span>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M14 5l7 7m0 0l-7 7m7-7H3"
-                      />
-                    </svg>
+                    <ArrowRight className="w-3.5 h-3.5 text-[#00D2FF]" />
                   </>
                 )}
               </button>
@@ -314,13 +303,13 @@ export default function RetrievalPage() {
 
             {/* Quick Test Chips */}
             <div className="flex flex-wrap items-center gap-2 pt-0.5">
-              <span className="text-[11px] text-slate-500 font-medium">Quick Test Queries:</span>
+              <span className="text-[11px] text-[#64748B] font-mono font-medium">Quick Test Queries:</span>
               {suggestions.map((sugg) => (
                 <button
                   key={sugg.label}
                   type="button"
                   onClick={() => handleSearch(undefined, sugg.query)}
-                  className="px-2.5 py-1 rounded-lg border border-slate-700 bg-slate-800/60 hover:bg-slate-700 hover:text-white text-[11px] text-slate-300 transition-all"
+                  className="px-3 py-1 rounded-lg border border-[#E6E6E1] bg-[#FAF9F6] hover:bg-white hover:border-[#0284C7] text-[11px] text-[#52525B] hover:text-[#0F172A] transition-all cursor-pointer shadow-2xs"
                 >
                   {sugg.label}
                 </button>
@@ -328,91 +317,91 @@ export default function RetrievalPage() {
             </div>
 
             {/* Modality Selector & Controls */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-4 border-t border-slate-800/80">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 pt-5 border-t border-[#E6E6E1]">
               {/* Search Modality Mode */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-slate-400 font-medium block">
+              <div className="space-y-2">
+                <label className="text-xs text-[#0F172A] font-bold block uppercase tracking-wider">
                   Search Modality
                 </label>
-                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-medium">
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs font-medium">
                   <button
                     type="button"
                     onClick={() => setMode("hybrid")}
-                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                    className={`py-2 px-2 rounded-lg transition-all text-center text-xs cursor-pointer ${
                       mode === "hybrid"
-                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-[#0F172A] text-white font-bold shadow-xs"
+                        : "text-[#52525B] hover:text-[#0F172A]"
                     }`}
                   >
-                    ⚡ Hybrid (RRF)
+                    Hybrid (RRF)
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode("dense")}
-                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                    className={`py-2 px-2 rounded-lg transition-all text-center text-xs cursor-pointer ${
                       mode === "dense"
-                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-[#0F172A] text-white font-bold shadow-xs"
+                        : "text-[#52525B] hover:text-[#0F172A]"
                     }`}
                   >
-                    🧠 Vector
+                    Vector (Dense)
                   </button>
                   <button
                     type="button"
                     onClick={() => setMode("sparse")}
-                    className={`py-1.5 px-2 rounded-lg transition-all text-center ${
+                    className={`py-2 px-2 rounded-lg transition-all text-center text-xs cursor-pointer ${
                       mode === "sparse"
-                        ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                        : "text-slate-400 hover:text-slate-200"
+                        ? "bg-[#0F172A] text-white font-bold shadow-xs"
+                        : "text-[#52525B] hover:text-[#0F172A]"
                     }`}
                   >
-                    🔤 Keyword
+                    Keyword (BM25)
                   </button>
                 </div>
               </div>
 
               {/* Cross-Encoder Reranker Toggle */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <label className="text-slate-400 font-medium">Cross-Encoder Reranker</label>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {rerank ? "ENABLED" : "BYPASSED"}
+                  <label className="text-[#0F172A] font-bold uppercase tracking-wider">Cross-Encoder Reranker</label>
+                  <span className="text-[10px] text-[#64748B] font-mono font-semibold">
+                    {rerank ? "ACTIVE" : "BYPASSED"}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRerank(!rerank)}
-                  className={`w-full py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                  className={`w-full py-2.5 px-3.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     rerank
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-                      : "bg-slate-900 border-slate-700 text-slate-400 hover:text-slate-200"
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800 shadow-2xs"
+                      : "bg-[#FAF9F6] border-[#E2E8F0] text-[#64748B] hover:text-[#0F172A]"
                   }`}
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${
-                      rerank ? "bg-emerald-400 animate-pulse" : "bg-slate-500"
+                      rerank ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
                     }`}
                   />
-                  {rerank ? "✨ Reranker Active" : "Reranker Off"}
+                  <span>{rerank ? "Reranker Enabled" : "Reranker Disabled"}</span>
                 </button>
               </div>
 
               {/* Sliders: Top-K & Threshold */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <label className="text-slate-400 font-medium">Top-K: {topK}</label>
-                  <span className="text-[10px] text-slate-500">
-                    Threshold: {Math.round(threshold * 100)}%
+                  <label className="text-[#0F172A] font-bold uppercase tracking-wider">Top-K: {topK}</label>
+                  <span className="text-[10px] text-[#64748B] font-mono font-semibold">
+                    Cutoff: {Math.round(threshold * 100)}%
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 pt-1">
                   <input
                     type="range"
                     min="1"
                     max="20"
                     value={topK}
-                    onChange={(e) => setTopK(parseInt(e.target.value))}
-                    className="accent-indigo-500 cursor-pointer"
+                    onChange={(e) => setTopK(parseInt(e.target.value, 10))}
+                    className="w-full accent-[#0F172A] cursor-pointer"
                     title={`Top-K: ${topK}`}
                   />
                   <input
@@ -422,7 +411,7 @@ export default function RetrievalPage() {
                     step="5"
                     value={threshold * 100}
                     onChange={(e) => setThreshold(parseFloat(e.target.value) / 100)}
-                    className="accent-indigo-500 cursor-pointer"
+                    className="w-full accent-[#0F172A] cursor-pointer"
                     title={`Threshold: ${Math.round(threshold * 100)}%`}
                   />
                 </div>
@@ -431,15 +420,15 @@ export default function RetrievalPage() {
 
             {/* Hybrid Alpha Balance Slider */}
             {mode === "hybrid" && (
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
+              <div className="p-4 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-xs space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">
+                  <span className="text-[#52525B] font-medium">
                     Hybrid Weight Balance:{" "}
-                    <span className="text-indigo-300 font-medium">
-                      {Math.round(alpha * 100)}% Dense Vector / {Math.round((1 - alpha) * 100)}% Keyword
+                    <span className="text-[#0F172A] font-bold">
+                      {Math.round(alpha * 100)}% Vector / {Math.round((1 - alpha) * 100)}% Keyword
                     </span>
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
+                  <span className="text-[10px] text-[#64748B] font-mono font-semibold">
                     α = {alpha.toFixed(2)}
                   </span>
                 </div>
@@ -450,48 +439,52 @@ export default function RetrievalPage() {
                   step="0.05"
                   value={alpha}
                   onChange={(e) => setAlpha(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-500 cursor-pointer"
+                  className="w-full accent-[#0F172A] cursor-pointer"
                 />
               </div>
             )}
           </form>
 
           {searchError && (
-            <div className="p-3.5 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">
-              {searchError}
+            <div
+              role="alert"
+              className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-xs flex items-center gap-2"
+            >
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{searchError}</span>
             </div>
           )}
-        </div>
+        </section>
 
         {/* Results Section */}
         {results !== null && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+          <section aria-labelledby="results-heading" className="space-y-4">
+            <div className="flex items-center justify-between text-xs text-[#64748B] px-1">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-200">
+                <span id="results-heading" className="font-bold text-[#0F172A]">
                   {results.length} Chunks Retrieved
                 </span>
                 {latencyMs !== null && (
-                  <span className="text-slate-500">• Executed in {latencyMs}ms</span>
+                  <span className="font-mono text-[#64748B]">• {latencyMs}ms execution</span>
                 )}
               </div>
-              <span className="text-slate-500">
-                Mode: <span className="uppercase text-slate-400 font-mono">{mode}</span>
+              <span className="text-[#64748B] font-mono text-[11px]">
+                Mode: <span className="uppercase text-[#0F172A] font-bold">{mode}</span>
                 {rerank ? " + Reranked" : ""}
               </span>
             </div>
 
             {results.length === 0 ? (
-              <div className="p-12 text-center border border-dashed border-slate-800 rounded-2xl bg-slate-900/30 space-y-2">
-                <div className="w-10 h-10 rounded-full bg-slate-800 text-slate-500 mx-auto flex items-center justify-center text-lg">
-                  🛡️
+              <div className="p-12 text-center border-2 border-dashed border-[#E6E6E1] rounded-2xl bg-white space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-[#0284C7] mx-auto flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-slate-300">
+                <p className="text-base font-bold text-[#0F172A]">
                   Zero Chunks Retrieved (Access Denied or No Matches)
                 </p>
-                <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  If this document exists in the system, your current persona ({authData?.user?.email})
-                  does not possess the required tenant, role, or group permissions to view it.
+                <p className="text-xs text-[#64748B] max-w-md mx-auto leading-relaxed">
+                  If this document exists in the database, your current persona ({authData?.user?.email})
+                  does not possess the required tenant, role, or group permissions to access it.
                 </p>
               </div>
             ) : (
@@ -503,72 +496,75 @@ export default function RetrievalPage() {
                   return (
                     <div
                       key={result.chunk_id}
-                      className="p-5 rounded-2xl border border-slate-800 bg-[#0F172A]/90 hover:border-slate-700 backdrop-blur-md shadow-lg transition-all space-y-3"
+                      className="p-5 sm:p-6 rounded-2xl border border-[#E6E6E1] bg-white shadow-card space-y-3.5 transition-all hover:shadow-md"
                     >
                       {/* Header */}
-                      <div className="flex items-center justify-between gap-3 border-b border-slate-800/80 pb-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="w-6 h-6 rounded-full bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold text-xs">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#E6E6E1] pb-3.5">
+                        <div className="flex items-center gap-3">
+                          <span className="w-7 h-7 rounded-lg bg-[#FAF9F6] text-[#0F172A] border border-[#E2E8F0] flex items-center justify-center font-mono font-bold text-xs shrink-0">
                             #{idx + 1}
                           </span>
-                          <span className="font-semibold text-sm text-slate-100 flex items-center gap-1.5">
-                            <span>📄</span>
+                          <span className="font-bold text-sm text-[#0F172A] flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#64748B] shrink-0" />
                             <span>{result.document_title}</span>
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {/* Provenance Tag */}
                           {result.retrieval_mode === "hybrid" && (
-                            <span className="px-2 py-0.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-[10px] font-medium font-mono">
-                              ⚡ Hybrid RRF
+                            <span className="px-2.5 py-0.5 rounded-md border border-[#E2E8F0] bg-[#FAF9F6] text-[#0F172A] text-[10px] font-mono font-semibold">
+                              Hybrid RRF
                             </span>
                           )}
                           {result.retrieval_mode === "dense" && (
-                            <span className="px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium font-mono">
-                              🧠 Dense Vector
+                            <span className="px-2.5 py-0.5 rounded-md border border-[#E2E8F0] bg-[#FAF9F6] text-[#64748B] text-[10px] font-mono">
+                              Dense Vector
                             </span>
                           )}
                           {result.retrieval_mode === "sparse" && (
-                            <span className="px-2 py-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300 text-[10px] font-medium font-mono">
-                              🔤 Keyword BM25
+                            <span className="px-2.5 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-mono font-semibold">
+                              Keyword BM25
                             </span>
                           )}
 
                           {/* Reranked Tag */}
                           {result.reranked && (
-                            <span className="px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium font-mono">
-                              ✨ Reranked
+                            <span className="px-2.5 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-[10px] font-mono font-semibold">
+                              Reranked
                             </span>
                           )}
 
                           {/* Scope Badge */}
                           {result.visibility === "private" && (
-                            <span className="px-2 py-0.5 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-[10px] font-medium">
-                              🔒 Private
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-mono font-semibold">
+                              <Lock className="w-3 h-3" />
+                              <span>Private</span>
                             </span>
                           )}
                           {result.visibility === "group" && (
-                            <span className="px-2 py-0.5 rounded-full border border-sky-500/30 bg-sky-500/10 text-sky-300 text-[10px] font-medium">
-                              👥 Group
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-indigo-200 bg-indigo-50 text-indigo-800 text-[10px] font-mono font-semibold">
+                              <Users className="w-3 h-3" />
+                              <span>Group</span>
                             </span>
                           )}
                           {result.visibility === "tenant" && (
-                            <span className="px-2 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[10px] font-medium">
-                              🏢 Tenant
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md border border-sky-200 bg-sky-50 text-sky-800 text-[10px] font-mono font-semibold">
+                              <Building2 className="w-3 h-3" />
+                              <span>Tenant</span>
                             </span>
                           )}
 
                           {/* Score Badge */}
-                          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs font-semibold font-mono">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            {displayScore}%
+                          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-bold font-mono">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>{displayScore}%</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Text Snippet */}
-                      <p className="text-xs text-slate-300 leading-relaxed font-sans bg-slate-900/40 p-3.5 rounded-xl border border-slate-800/60">
+                      <p className="text-xs text-[#1E293B] leading-relaxed font-sans bg-[#FAF9F6] p-3.5 rounded-xl border border-[#E2E8F0]">
                         {result.text}
                       </p>
 
@@ -583,17 +579,10 @@ export default function RetrievalPage() {
                             height?: number;
                           }>
                         ).length > 0 && (
-                          <div className="space-y-2 pt-1 border-t border-slate-800/50">
-                            <span className="text-[11px] font-semibold text-indigo-300 flex items-center gap-1.5">
-                              <span>🖼️</span> Attached Figures & Diagrams (Page{" "}
-                              {String(
-                                (
-                                  result.metadata.images as Array<{
-                                    page?: number;
-                                  }>
-                                )[0]?.page || "—"
-                              )}
-                              ):
+                          <div className="space-y-2 pt-2 border-t border-[#E6E6E1]">
+                            <span className="text-[11px] font-bold text-[#64748B] flex items-center gap-1.5 font-mono">
+                              <ImageIcon className="w-3.5 h-3.5 text-[#0284C7]" />
+                              <span>Extracted Multimodal Figures:</span>
                             </span>
                             <div className="flex flex-wrap gap-2.5">
                               {(
@@ -610,15 +599,15 @@ export default function RetrievalPage() {
                                   href={img.url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="group relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950/80 hover:border-indigo-500/80 transition-all p-1 inline-block"
+                                  className="group relative rounded-xl overflow-hidden border border-[#E6E6E1] bg-[#FAF9F6] hover:border-[#0284C7] transition-all p-1 inline-block shadow-2xs"
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={img.url}
                                     alt={img.filename}
-                                    className="h-28 max-w-xs object-cover rounded-lg group-hover:scale-[1.02] transition-transform"
+                                    className="h-24 max-w-xs object-cover rounded-lg"
                                   />
-                                  <div className="absolute inset-x-1 bottom-1 bg-slate-950/80 backdrop-blur-xs py-0.5 px-1.5 text-[9px] font-mono text-slate-300 truncate">
+                                  <div className="absolute inset-x-1 bottom-1 bg-black/70 backdrop-blur-2xs py-0.5 px-1.5 text-[9px] font-mono text-white truncate rounded">
                                     {img.filename}
                                   </div>
                                 </a>
@@ -628,14 +617,14 @@ export default function RetrievalPage() {
                         )}
 
                       {/* Provenance & Distance Footer */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                      <div className="flex items-center justify-between text-[11px] text-[#64748B] pt-1">
                         <div className="flex items-center gap-3 font-mono">
                           <span>Chunk ID: {result.chunk_id.slice(0, 8)}...</span>
                           <span>Cosine Distance: {result.distance}</span>
                         </div>
 
                         {result.metadata && Object.keys(result.metadata).length > 0 && (
-                          <div className="text-[10px] text-slate-500">
+                          <div className="text-[10px] text-[#64748B] font-mono">
                             Tokens: {String(result.metadata.token_count || result.metadata.word_count || "—")}
                           </div>
                         )}
@@ -645,9 +634,10 @@ export default function RetrievalPage() {
                 })}
               </div>
             )}
-          </div>
+          </section>
         )}
       </main>
+      <AppFooter />
     </div>
   );
 }

@@ -37,27 +37,35 @@ def get_user_context(request: Request) -> UserContext:
 
     # 1. Primary path: Resolve claims from the verified JWT payload (AccessToken or dict)
     payload = getattr(token, "payload", token) if token else None
-    if payload and hasattr(payload, "get"):
-        tenant_id_str = payload.get("tenant_id")
-        if tenant_id_str:
-            try:
-                tenant_id = UUID(str(tenant_id_str))
-                user_id = UUID(str(payload.get("user_id", request.user.id)))
-                role = str(payload.get("role", "member"))
-                group_id_strs = payload.get("groups", [])
-                group_ids = tuple(UUID(str(gid)) for gid in group_id_strs)
+    if payload and hasattr(payload, "get") and payload.get("tenant_id"):
+        try:
+            tenant_id = UUID(str(payload["tenant_id"]))
+        except (ValueError, TypeError) as exc:
+            raise AuthenticationFailed("Malformed tenant claim.") from exc
 
-                return UserContext(
-                    tenant_id=tenant_id,
-                    user_id=user_id,
-                    email=str(payload.get("email", request.user.email)),
-                    role=role,
-                    group_ids=group_ids,
-                )
-            except (ValueError, TypeError) as exc:
-                raise AuthenticationFailed(
-                    f"Malformed claims in authentication token: {exc}"
-                ) from exc
+        membership = (
+            request.user.tenant_memberships.select_related("tenant")
+            .filter(tenant_id=tenant_id, tenant__is_active=True)
+            .first()
+        )
+        if not membership:
+            raise AuthenticationFailed("Membership for this tenant was revoked.")
+
+        group_ids = tuple(
+            request.user.group_memberships.filter(group__tenant_id=tenant_id)
+            .values_list("group_id", flat=True)
+        )
+        # Ensure database connection has tenant session setting active
+        from accounts.middleware import set_tenant_db_context
+        set_tenant_db_context(tenant_id)
+
+        return UserContext(
+            tenant_id=tenant_id,
+            user_id=request.user.id,
+            email=request.user.email,
+            role=membership.role,
+            group_ids=group_ids,
+        )
 
     # 2. Fallback path (e.g. SessionAuth, testing, or token without claims): Resolve from database
     membership = (
@@ -76,6 +84,10 @@ def get_user_context(request: Request) -> UserContext:
         ).values_list("group_id", flat=True)
     )
 
+    # Ensure database connection has tenant session setting active
+    from accounts.middleware import set_tenant_db_context
+    set_tenant_db_context(membership.tenant.id)
+
     return UserContext(
         tenant_id=membership.tenant.id,
         user_id=request.user.id,
@@ -83,3 +95,21 @@ def get_user_context(request: Request) -> UserContext:
         role=membership.role,
         group_ids=group_ids,
     )
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def tenant_db_context(tenant_id):
+    """
+    Explicit context manager for test fixtures, background tasks, or migrations
+    that need to establish PostgreSQL session-level tenant context under RLS.
+    """
+    from accounts.middleware import set_tenant_db_context
+
+    set_tenant_db_context(str(tenant_id) if tenant_id else None)
+    try:
+        yield
+    finally:
+        set_tenant_db_context(None)

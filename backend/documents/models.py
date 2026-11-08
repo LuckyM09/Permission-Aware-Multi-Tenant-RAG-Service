@@ -228,3 +228,9 @@ class Chunk(models.Model):
 
     def __str__(self) -> str:
         return f"Chunk #{self.position} of '{self.document.title}'"
+
+    def save(self, *args, **kwargs):
+        # Auto-align tenant_id from parent document if omitted
+        if not self.tenant_id and self.document_id:
+            self.tenant = self.document.tenant
+        super().save(*args, **kwargs)

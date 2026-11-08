@@ -9,6 +9,22 @@ from .base import *
 
 DEBUG = False
 
+# Hard production invariant: Mock AI fallbacks are strictly disabled
+ALLOW_MOCK_AI_FALLBACK = False
+
+# In production, public registration is closed unless explicitly enabled with an invite code
+ALLOW_PUBLIC_TENANT_REGISTRATION = config(
+    "ALLOW_PUBLIC_TENANT_REGISTRATION", default=False, cast=bool
+)
+
+# Hard production invariant: Insecure secret keys halt startup immediately
+if SECRET_KEY.startswith("django-insecure") or "change-me" in SECRET_KEY or len(SECRET_KEY) < 32:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "CRITICAL SECURITY FAILURE: DJANGO_SECRET_KEY is using an insecure or default value in production. "
+        "Set a cryptographically strong, random DJANGO_SECRET_KEY before deploying."
+    )
+
 # Security Headers & SSL
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True

@@ -4,6 +4,7 @@ from collections.abc import Iterator
 
 import requests
 from decouple import config
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,8 @@ class LLMClient:
     """
     OpenAI-compatible LLM client configured for NVIDIA NIM / Nemotron models.
     Supports both synchronous generation and Server-Sent Events (SSE) token streaming.
-    Falls back gracefully to a mock generator in offline/test environments.
+    In production, fails loudly if unconfigured or on upstream error.
+    Mock generator is strictly restricted to development/test environments.
     """
 
     def __init__(
@@ -46,6 +48,11 @@ class LLMClient:
             and len(self.api_key) > 10
         )
 
+    @property
+    def allows_mock(self) -> bool:
+        """Mock fallback is strictly permitted in local development/tests only."""
+        return getattr(settings, "ALLOW_MOCK_AI_FALLBACK", getattr(settings, "DEBUG", False))
+
     def generate(
         self,
         messages: list[dict[str, str]],
@@ -54,7 +61,11 @@ class LLMClient:
     ) -> str:
         """Executes non-streaming chat completion."""
         if not self.is_configured:
-            return self._mock_generate(messages)
+            if self.allows_mock:
+                return self._mock_generate(messages)
+            raise RuntimeError(
+                "LLM service is not configured. A valid NVIDIA_API_KEY or OPENAI_API_KEY is required."
+            )
 
         endpoint = f"{self.base_url}/chat/completions"
         headers = {
@@ -74,13 +85,17 @@ class LLMClient:
             if resp.status_code == 200:
                 data = resp.json()
                 return data["choices"][0]["message"]["content"]
-            logger.warning(
-                f"[LLMClient] API error {resp.status_code}: {resp.text[:200]}. Falling back to mock."
+            logger.error(
+                f"[LLMClient] API error {resp.status_code}: {resp.text[:200]}"
             )
+            if self.allows_mock:
+                return self._mock_generate(messages)
+            raise RuntimeError(f"NVIDIA NIM API error ({resp.status_code}): {resp.text[:200]}")
         except Exception as exc:
-            logger.warning(f"[LLMClient] Request failed: {exc}. Falling back to mock.")
-
-        return self._mock_generate(messages)
+            logger.error(f"[LLMClient] Request failed: {exc}")
+            if self.allows_mock:
+                return self._mock_generate(messages)
+            raise
 
     def stream_generate(
         self,
@@ -93,8 +108,12 @@ class LLMClient:
         Handles both live SSE stream from NVIDIA NIM and mock token streaming.
         """
         if not self.is_configured:
-            yield from self._mock_stream_generate(messages)
-            return
+            if self.allows_mock:
+                yield from self._mock_stream_generate(messages)
+                return
+            raise RuntimeError(
+                "LLM service is not configured. A valid NVIDIA_API_KEY or OPENAI_API_KEY is required."
+            )
 
         endpoint = f"{self.base_url}/chat/completions"
         headers = {
@@ -114,11 +133,13 @@ class LLMClient:
                 endpoint, json=payload, headers=headers, stream=True, timeout=60
             )
             if resp.status_code != 200:
-                logger.warning(
+                logger.error(
                     f"[LLMClient] Stream HTTP {resp.status_code}: {resp.text[:200]}"
                 )
-                yield from self._mock_stream_generate(messages)
-                return
+                if self.allows_mock:
+                    yield from self._mock_stream_generate(messages)
+                    return
+                raise RuntimeError(f"NVIDIA NIM streaming error ({resp.status_code})")
 
             for line in resp.iter_lines(decode_unicode=True):
                 if not line:
@@ -138,8 +159,11 @@ class LLMClient:
                     except json.JSONDecodeError:
                         continue
         except Exception as exc:
-            logger.warning(f"[LLMClient] Stream error: {exc}. Yielding mock stream.")
-            yield from self._mock_stream_generate(messages)
+            logger.error(f"[LLMClient] Stream error: {exc}")
+            if self.allows_mock:
+                yield from self._mock_stream_generate(messages)
+                return
+            raise
 
     def _mock_generate(self, messages: list[dict[str, str]]) -> str:
         """Deterministic fallback synthesizer for offline environments and testing."""

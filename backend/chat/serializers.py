@@ -1,3 +1,6 @@
+import re
+from uuid import UUID
+
 from rest_framework import serializers
 
 from .models import Conversation, Message
@@ -84,6 +87,36 @@ class ChatQuerySerializer(serializers.Serializer):
         default=dict,
         help_text="Metadata pre-filters (document_id, file_type, date, etc.)",
     )
+
+    def validate_filters(self, value: dict) -> dict:
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("Filters must be a JSON object.")
+        for key in ["document_id", "doc_id"]:
+            if key in value and value[key]:
+                val = value[key]
+                if isinstance(val, (list, tuple)):
+                    for item in val:
+                        try:
+                            UUID(str(item))
+                        except (ValueError, TypeError):
+                            raise serializers.ValidationError(f"Invalid UUID in '{key}': {item}")
+                else:
+                    try:
+                        UUID(str(val))
+                    except (ValueError, TypeError):
+                        raise serializers.ValidationError(f"Invalid UUID in '{key}': {val}")
+        if "document_ids" in value and value["document_ids"]:
+            for item in value["document_ids"]:
+                try:
+                    UUID(str(item))
+                except (ValueError, TypeError):
+                    raise serializers.ValidationError(f"Invalid UUID in 'document_ids': {item}")
+        meta = value.get("metadata")
+        if meta and isinstance(meta, dict):
+            for k in meta.keys():
+                if not isinstance(k, str) or "__" in k or not re.match(r"^[a-zA-Z0-9_-]+$", k):
+                    raise serializers.ValidationError(f"Invalid metadata key: '{k}'. Must be an identifier without '__'.")
+        return value
     expand_parent = serializers.BooleanField(
         required=False,
         default=True,

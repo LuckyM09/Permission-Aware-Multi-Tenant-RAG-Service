@@ -1,6 +1,21 @@
 from django.contrib import admin
 
-from .models import Group, GroupMember, Membership, Tenant
+from .models import ContactInquiry, Group, GroupMember, Membership, Tenant
+
+
+@admin.register(ContactInquiry)
+class ContactInquiryAdmin(admin.ModelAdmin):
+    list_display = (
+        "full_name",
+        "company_name",
+        "work_email",
+        "inquiry_type",
+        "team_size",
+        "created_at",
+    )
+    search_fields = ("full_name", "company_name", "work_email", "use_case")
+    list_filter = ("inquiry_type", "team_size", "created_at")
+    readonly_fields = ("created_at", "source_ip")
 
 
 @admin.register(Tenant)
