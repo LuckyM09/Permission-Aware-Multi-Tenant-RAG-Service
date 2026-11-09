@@ -1,5 +1,9 @@
 from django.urls import path
 
+from tenants.platform_views import (
+    PlatformRegistrationDecisionView,
+    PlatformRegistrationListView,
+)
 from tenants.views import (
     AccessExplorerView,
     ContactInquiryView,
@@ -16,6 +20,17 @@ urlpatterns = [
     path("inquiry/", ContactInquiryView.as_view(), name="tenant_contact_inquiry"),
     # Tenant Self-Service Registration
     path("register/", TenantRegistrationView.as_view(), name="tenant_register"),
+    # Platform owner: review registration requests
+    path(
+        "platform/registrations/",
+        PlatformRegistrationListView.as_view(),
+        name="platform_registration_list",
+    ),
+    path(
+        "platform/registrations/<uuid:pk>/<str:action>/",
+        PlatformRegistrationDecisionView.as_view(),
+        name="platform_registration_decision",
+    ),
     # Tenant Members
     path("members/", TenantMemberListCreateView.as_view(), name="tenant_member_list_create"),
     path("members/<uuid:pk>/", TenantMemberDetailView.as_view(), name="tenant_member_detail"),

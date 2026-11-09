@@ -12,6 +12,12 @@ echo " Target Database: $DB_NAME"
 echo " Application Role: $APP_USER (NOSUPERUSER, NOBYPASSRLS)"
 echo "=========================================================="
 
+# 1. Install extensions in template1 so any test or spawned databases automatically inherit them
+psql -v ON_ERROR_STOP=1 --username "$ADMIN_USER" --dbname "template1" <<-EOSQL
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "vector";
+EOSQL
+
 psql -v ON_ERROR_STOP=1 --username "$ADMIN_USER" --dbname "$DB_NAME" \
      -v app_user="$APP_USER" \
      -v app_pass="$APP_PASSWORD" \

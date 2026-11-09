@@ -66,5 +66,6 @@ RAG_Project/
 repomix.config.json
 
 # Agent & AI tool caches
+*.patch
 .agent/
 .agents/

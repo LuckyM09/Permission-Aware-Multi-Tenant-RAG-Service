@@ -90,7 +90,11 @@ python backend/manage.py run_ragas_eval
 ```
 
 **Expected Benchmark Output:**
-- **Data Leakage Rate:** `0.0%` (0 leaks detected across all adversarial vectors)
-- **Context Recall:** `100.0%`
+- **Data Leakage Rate:** `0.00%` (0 leaks detected across all 200 test cases)
+- **Answer Correctness:** `0.9257` (92.6%)
+- **Context Precision:** `0.8900` (89.0%)
+- **Context Recall:** `0.8709` (87.1%)
+- **Faithfulness (Groundedness):** `0.8615` (86.2%)
 - **Citation Shield Accuracy:** `100.0%`
-- **Median Retrieval Latency (p50):** `< 20ms`
+- **Pre-Filter SQL RLS Overhead:** `2.47 ms`
+- **Median Retrieval Latency (p50):** `354.04 ms` (public WAN round-trip to remote NVIDIA NIM API)

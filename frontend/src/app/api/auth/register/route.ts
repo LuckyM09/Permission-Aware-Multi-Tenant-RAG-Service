@@ -24,6 +24,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Approval mode: the backend queued the request and issued no session.
+    if (data.pending) {
+      return NextResponse.json({
+        success: true,
+        pending: true,
+        message: data.detail,
+      });
+    }
+
     const { access, refresh, user, tenant, groups } = data;
     const cookieStore = cookies();
 

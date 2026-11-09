@@ -75,6 +75,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [pending, setPending] = useState(false);
 
   const togglePresetDept = (dept: string) => {
     if (departments.includes(dept)) {
@@ -141,6 +142,12 @@ export default function RegisterPage() {
 
       if (!res.ok) {
         setErrorMessage(data.error || "Tenant registration failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      if (data.pending) {
+        setPending(true);
         setLoading(false);
         return;
       }
@@ -233,7 +240,21 @@ export default function RegisterPage() {
             </Alert>
           )}
 
-          {success ? (
+          {pending ? (
+            <div className="py-10 text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-sky-50 border border-sky-200 text-sky-600 flex items-center justify-center mx-auto shadow-xs">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-bold text-[#0F172A]">
+                Request received
+              </h3>
+              <p className="text-xs sm:text-sm text-[#52525B] max-w-sm mx-auto">
+                Thanks! Your request for <strong className="text-[#0F172A]">{companyName}</strong> is
+                waiting for review. We will email <strong className="text-[#0F172A]">{adminEmail}</strong> once
+                it has been approved, and then you can sign in.
+              </p>
+            </div>
+          ) : success ? (
             <div className="py-10 text-center space-y-4">
               <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto transition-transform duration-500 ease-out shadow-xs">
                 <CheckCircle2 className="w-8 h-8" />

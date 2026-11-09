@@ -118,6 +118,18 @@ TENANT_REGISTRATION_INVITE_CODE = config(
     "TENANT_REGISTRATION_INVITE_CODE", default=""
 )
 
+# When True (default), self-service registrations wait in a review queue until the
+# platform owner approves them in Django admin. A valid invite code skips the queue.
+TENANT_REGISTRATION_REQUIRES_APPROVAL = config(
+    "TENANT_REGISTRATION_REQUIRES_APPROVAL", default=True, cast=bool
+)
+# Stop accepting new requests while this many are already waiting (spam guard).
+TENANT_REGISTRATION_MAX_PENDING = config(
+    "TENANT_REGISTRATION_MAX_PENDING", default=50, cast=int
+)
+# Used for the sign-in link in approval emails.
+FRONTEND_BASE_URL = config("FRONTEND_BASE_URL", default="http://localhost:3000")
+
 # Custom User Model - Configured from Day 1
 AUTH_USER_MODEL = "accounts.User"
 

@@ -1,9 +1,12 @@
+import hmac
 import logging
 import secrets
 import uuid
 from uuid import UUID
 
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Count
@@ -20,7 +23,15 @@ from accounts.models import User
 from audit.models import AuditAction, AuditLog
 from documents.models import Document
 from documents.permissions import get_permitted_documents_q
-from tenants.models import Group, GroupMember, Membership, Role, Tenant
+from tenants.models import (
+    Group,
+    GroupMember,
+    Membership,
+    RegistrationRequest,
+    Role,
+    Tenant,
+)
+from tenants.notifications import notify_owner_new_request
 from tenants.serializers import (
     AccessExplorerRequestSerializer,
     ContactInquirySerializer,
@@ -53,6 +64,68 @@ class TenantRegistrationView(APIView):
 
     permission_classes = [AllowAny]
 
+    REQUEST_RATE_LIMIT = 10  # queued requests per client IP per hour
+    PENDING_RESPONSE = {
+        "success": True,
+        "pending": True,
+        "detail": (
+            "Your registration request has been received. "
+            "You will be able to sign in once it has been approved."
+        ),
+    }
+
+    def _queue_registration(self, request: Request, data) -> Response:
+        """Store a registration request for owner review (no account is created)."""
+        from django.conf import settings
+
+        max_pending = getattr(settings, "TENANT_REGISTRATION_MAX_PENDING", 50)
+        if (
+            RegistrationRequest.objects.filter(
+                status=RegistrationRequest.Status.PENDING
+            ).count()
+            >= max_pending
+        ):
+            return Response(
+                {"detail": "Registration requests are temporarily closed. Please try again later."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        ip = request.META.get("REMOTE_ADDR")
+        rate_key = f"tenant_reg_rate:{ip or 'unknown'}"
+        attempts = cache.get(rate_key, 0)
+        if attempts >= self.REQUEST_RATE_LIMIT:
+            return Response(
+                {"detail": "Too many registration requests. Please try again later."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(rate_key, attempts + 1, 3600)
+
+        email = data["admin_email"].strip().lower()
+        already_known = (
+            User.objects.filter(email__iexact=email).exists()
+            or RegistrationRequest.objects.filter(
+                admin_email__iexact=email,
+                status=RegistrationRequest.Status.PENDING,
+            ).exists()
+        )
+        # Same response either way, so the endpoint cannot be used to probe which
+        # emails are registered.
+        if not already_known:
+            reg = RegistrationRequest.objects.create(
+                company_name=data["company_name"].strip(),
+                company_slug=(data.get("company_slug") or "").strip(),
+                admin_name=(data.get("admin_name") or "").strip(),
+                admin_email=email,
+                password_hash=make_password(data["admin_password"]),
+                departments=[
+                    str(d).strip() for d in (data.get("departments") or []) if str(d).strip()
+                ],
+                source_ip=ip,
+            )
+            notify_owner_new_request(reg)
+
+        return Response(self.PENDING_RESPONSE, status=status.HTTP_202_ACCEPTED)
+
     def post(self, request: Request) -> Response:
         from django.conf import settings
 
@@ -68,6 +141,17 @@ class TenantRegistrationView(APIView):
 
         serializer = TenantRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # Owner approval gate: unless the caller holds a valid invite code, the request
+        # is queued for review and NO tenant, user or token is created.
+        has_valid_invite = bool(required_code) and hmac.compare_digest(
+            invite_code.encode(), required_code.encode()
+        )
+        requires_approval = getattr(
+            settings, "TENANT_REGISTRATION_REQUIRES_APPROVAL", True
+        )
+        if requires_approval and not has_valid_invite:
+            return self._queue_registration(request, serializer.validated_data)
 
         data = serializer.validated_data
         company_name = data["company_name"].strip()

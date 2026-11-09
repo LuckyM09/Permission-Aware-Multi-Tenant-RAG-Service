@@ -19,6 +19,7 @@ import {
   Headphones,
   CheckCircle2,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { MorphingMegaMenu } from "@/components/ui/morphing-mega-menu";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -91,6 +92,7 @@ export function AppHeader({
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSubmitted, setSupportSubmitted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isPlatformOwner, setIsPlatformOwner] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -101,9 +103,23 @@ export function AppHeader({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    if (!userEmail) return;
+    let cancelled = false;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled) setIsPlatformOwner(Boolean(d?.user?.is_platform_owner));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [userEmail]);
+
   const isAdmin = role?.toLowerCase() === "admin";
 
-  const navItems = isAdmin
+  const baseNavItems = isAdmin
     ? [
         { label: "Chat", href: "/chat", icon: MessageSquare },
         { label: "Documents", href: "/documents", icon: FileText },
@@ -114,6 +130,10 @@ export function AppHeader({
     : [
         { label: "Chat", href: "/chat", icon: MessageSquare },
       ];
+
+  const navItems = isPlatformOwner
+    ? [...baseNavItems, { label: "Owner Panel", href: "/platform/registrations", icon: ShieldCheck }]
+    : baseNavItems;
 
   const handleLogoutClick = async () => {
     try {

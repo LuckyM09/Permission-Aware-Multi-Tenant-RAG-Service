@@ -153,7 +153,7 @@ erDiagram
         uuid document_id FK
         int position
         text text
-        vector embedding "1536 dim"
+        vector embedding "2048 dim (NVIDIA Nemotron-3-Embed-1b)"
         jsonb metadata
         datetime created_at
     }
@@ -293,35 +293,38 @@ LIMIT :top_k;
 As a second layer of defense (defense-in-depth), PostgreSQL Row-Level Security ensures that even if an application SQL injection or developer logic bug occurs, the database engine enforces tenant boundaries.
 
 #### 5.1 Database Users & Separation of Duties
-1. **Migration / Admin Role (`vaultrag_owner`)**: Owns tables, executes migrations, alters schema. Bypasses RLS.
-2. **Runtime Application Role (`vaultrag_app`)**: Non-owner, non-superuser role used by Django. Subject to `FORCE ROW LEVEL SECURITY`.
+1. **Migration / Admin Role (`vaultrag_admin` / owner)**: Owns tables, executes migrations, alters schema. Privileged to execute DDL and manage PostgreSQL extensions (`pgvector`, `uuid-ossp`).
+2. **Runtime Application Role (`vaultrag_user`)**: Unprivileged, non-superuser role used by Django runtime processes (Gunicorn WSGI, Celery workers). Created with `NOSUPERUSER NOBYPASSRLS`.
+3. **Automated Superuser Check (`vaultrag.security.E001`)**: `accounts.apps.check_postgres_rls_role` checks `SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user` at startup. If Gunicorn or Celery connects as a superuser or with `BYPASSRLS`, startup aborts immediately.
 
-#### 5.2 RLS Setup & Context Injection
+#### 5.2 RLS Setup & SQL Policies
+Enforced via Migration `documents/migrations/0003_enable_force_rls.py`:
 ```sql
--- Enable and force RLS on all tenant-bound tables
-ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE documents FORCE ROW LEVEL SECURITY;
+-- 1. Enable and FORCE Row-Level Security on tenant-bound tables
+ALTER TABLE documents_document ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documents_document FORCE ROW LEVEL SECURITY;
 
-ALTER TABLE chunks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chunks FORCE ROW LEVEL SECURITY;
+ALTER TABLE documents_chunk ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documents_chunk FORCE ROW LEVEL SECURITY;
 
--- Tenant Isolation Policy
-CREATE POLICY document_tenant_isolation_policy ON documents
+-- 2. Tenant Isolation Policies with WITH CHECK
+CREATE POLICY tenant_isolation_policy ON documents_document
     FOR ALL
-    TO vaultrag_app
-    USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+    USING (tenant_id::text = current_setting('app.tenant_id', true))
+    WITH CHECK (tenant_id::text = current_setting('app.tenant_id', true));
 
-CREATE POLICY chunk_tenant_isolation_policy ON chunks
+CREATE POLICY tenant_isolation_policy ON documents_chunk
     FOR ALL
-    TO vaultrag_app
-    USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid);
+    USING (tenant_id::text = current_setting('app.tenant_id', true))
+    WITH CHECK (tenant_id::text = current_setting('app.tenant_id', true));
 ```
 
-#### 5.3 Connection Pooling & Request Scope
-To prevent context leakage across pooled connections (e.g., PgBouncer or connection pools):
-- Django wraps each request in a transaction (`ATOMIC_REQUESTS = True` or dedicated middleware).
-- Context is set using `set_config('app.tenant_id', str(tenant_id), true)` where `is_local = true` ensures the setting is scoped strictly to the current transaction.
-- If no context is set, `current_setting('app.tenant_id', true)` evaluates to `NULL`, returning **0 rows**.
+#### 5.3 Connection Pooling & Request Scope Lifecycle
+To prevent context leakage across pooled connections (e.g., PgBouncer, Celery, or Django persistent connections):
+- **Middleware Scope:** `TenantContextMiddleware` extracts `tenant_id` from the verified JWT payload, executes `SELECT set_config('app.tenant_id', %s, false);`, and wraps the view in a `try ... finally` block.
+- **Guaranteed Cleanup:** The `finally:` block invokes `set_tenant_db_context(None)` (resetting `app.tenant_id` to `""`), ensuring no pooled connection ever retains tenant identity for subsequent queries.
+- **SSE Streaming Support:** For streaming chat (`/api/v1/chat/stream/`), `stream_chat_response` maintains tenant context across the entire generator lifecycle, executing `set_tenant_db_context(user_ctx.tenant_id)` at generator instantiation and resetting in its own generator `finally:` block.
+- **Zero-Context Default:** If `app.tenant_id` is empty or unset, `current_setting('app.tenant_id', true)` evaluates to `""`, returning **0 rows** under `FORCE ROW LEVEL SECURITY`.
 
 ---
 

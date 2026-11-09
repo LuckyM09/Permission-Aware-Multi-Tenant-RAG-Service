@@ -40,9 +40,9 @@
 4. **Single Source of Permission Truth**:
    All components (retrieval, document lists, citations, Access Explorer) must call `permissions.service.get_permitted_documents_q()`.
 5. **Postgres RLS Defense-in-Depth**:
-   Tables have `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY`. Application connects as non-superuser/non-owner role `vaultrag_app`.
-6. **Transaction-Scoped Tenant Context**:
-   Tenant context in database connections is set using `SELECT set_config('app.tenant_id', %s, true)` within atomic transactions. A query with no context set returns **zero rows**.
+   Tables have `ENABLE ROW LEVEL SECURITY` and `FORCE ROW LEVEL SECURITY`. Application connects as non-superuser/non-owner role `vaultrag_user` (`NOSUPERUSER NOBYPASSRLS`). The startup check (`check_postgres_rls_role`) halts deployment if superuser access is detected.
+6. **Session-Scoped Tenant Context & Guaranteed Cleanup**:
+   Tenant context in database connections is set using `SELECT set_config('app.tenant_id', %s, false)` within middleware and streaming generator lifecycles, and guaranteed to reset to `""` in `finally:` blocks. A query with no context set returns **zero rows**.
 7. **Zero-Enumeration (404 over 403)**:
    Inaccessible or cross-tenant objects return HTTP 404 rather than 403 to prevent object existence enumeration.
 8. **No Document Text in Logs or Traces**:
@@ -66,14 +66,14 @@
 
 - [x] **M0 — Foundations**: Monorepo layout, Docker Compose (Postgres+pgvector, Redis, MinIO, Django, Next.js), base settings, CI pipeline.
 - [x] **M1 — Auth & Tenancy**: Custom user model, SimpleJWT with tenant claims, Next.js httpOnly BFF, tenant-scoped managers, dev user switcher.
-- [ ] **M2 — Document Ingestion**: Upload endpoint, magic byte validation, Celery pipeline (parse -> chunk -> embed -> write), deduplication.
-- [ ] **M3 — Access Control & Permissions**: Visibility tiers (`private`, `group`, `tenant`), `document_permissions` table, `permissions` service, test matrix.
-- [ ] **M4 — Filtered Retrieval & Chat**: Pre-filtered pgvector search, prompt assembly, citation mapping, SSE streaming, conversation persistence.
-- [ ] **M5 — RLS, Audit & Hardening**: Postgres `FORCE RLS`, append-only audit logger, revocation handling, rate limiting, security headers.
-- [ ] **M6 — Admin UX & Access Explorer**: Users & groups screens, Access Explorer dual-matrix UI, audit log query inspector.
-- [ ] **M7 — Adversarial Testing & Evaluation**: 12-category adversarial leakage suite in CI (0 leaks), RAGAS evaluation metrics report.
-- [ ] **M8 — Production Readiness & Deployment**: Multi-stage Dockerfiles, Gunicorn/Uvicorn, health checks, secrets management, load testing.
-- [ ] **M9 — Documentation & Demo**: Portfolio-ready README, architecture diagrams, demo video script, verifiable benchmark claims.
+- [x] **M2 — Document Ingestion**: Upload endpoint, magic byte validation, Celery pipeline (parse -> chunk -> embed -> write), deduplication.
+- [x] **M3 — Access Control & Permissions**: Visibility tiers (`private`, `group`, `tenant`), `document_permissions` table, `permissions` service, test matrix.
+- [x] **M4 — Filtered Retrieval & Chat**: Pre-filtered pgvector search, prompt assembly, citation mapping, SSE streaming, conversation persistence.
+- [x] **M5 — RLS, Audit & Hardening**: Postgres `FORCE RLS`, append-only audit logger, revocation handling, rate limiting, security headers.
+- [x] **M6 — Admin UX & Access Explorer**: Users & groups screens, Access Explorer dual-matrix UI, audit log query inspector.
+- [x] **M7 — Adversarial Testing & Evaluation**: 12-category adversarial leakage suite in CI (0 leaks), RAGAS evaluation metrics report.
+- [x] **M8 — Production Readiness & Deployment**: Multi-stage Dockerfiles, Gunicorn/Uvicorn, health checks, secrets management, load testing.
+- [x] **M9 — Documentation & Demo**: Portfolio-ready README, architecture diagrams, demo video script, verifiable benchmark claims.
 
 ---
 

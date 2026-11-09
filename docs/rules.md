@@ -60,17 +60,11 @@ The backend is partitioned into single-responsibility Django apps:
           return self.get_queryset().for_tenant(tenant_id)
   ```
 
-#### 2.3 Row-Level Security (RLS) & Transaction Safety
-- Database connections run under the unprivileged role `vaultrag_app`.
-- Every request that touches tenant data must execute within a database transaction where the tenant context is set using `set_config`:
-  ```python
-  from django.db import connection
-
-  def set_tenant_context(tenant_id: UUID):
-      with connection.cursor() as cursor:
-          cursor.execute("SELECT set_config('app.tenant_id', %s, true);", [str(tenant_id)])
-  ```
-- The third argument (`true`) is mandatory, ensuring the setting is local to the current transaction (`is_local = true`).
+#### 2.3 Row-Level Security (RLS) & Session Lifecycle Safety
+- **Unprivileged Runtime Role**: Database runtime processes (Gunicorn, Celery) connect strictly under the unprivileged role `vaultrag_user` (`NOSUPERUSER NOBYPASSRLS`). The startup check (`check_postgres_rls_role`) halts deployment if superuser access is detected.
+- **Request & Streaming Lifecycle**: Every request sets `app.tenant_id` via `set_tenant_db_context` and guarantees cleanup via `finally: set_tenant_db_context(None)` across both standard views and Server-Sent Events (SSE) streaming generators.
+- **Production Model Invariance**: Production models (`Document`, `Chunk`) must **never** manipulate connection session context inside `save()` or `delete()`. RLS serves as an independent database backstop; models must never self-certify their own tenant credentials.
+- **Fail Loudly on AI Errors**: `ALLOW_MOCK_AI_FALLBACK` is strictly `False` in production. Missing API keys or upstream LLM/embedding errors must raise explicit `RuntimeError` exceptions rather than quietly serving mock data.
 
 #### 2.4 Serializers & API Contracts
 - Serializers must explicitly declare `fields`. Never use `fields = '__all__'`.

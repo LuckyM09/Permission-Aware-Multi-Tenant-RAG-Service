@@ -91,6 +91,7 @@ class CurrentUserView(APIView):
                     "id": str(user.id),
                     "email": user.email,
                     "full_name": user.full_name,
+                    "is_platform_owner": bool(user.is_superuser),
                 },
                 "context": {
                     "tenant_id": str(user_ctx.tenant_id),
