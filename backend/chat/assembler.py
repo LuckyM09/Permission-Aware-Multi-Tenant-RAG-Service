@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from typing import Any
 
 
@@ -33,11 +34,21 @@ class ContextAssembler:
     )
 
     INJECTION_PATTERNS = [
-        re.compile(r"ignore\s+(all\s+)?(previous|prior)\s+instructions", re.IGNORECASE),
-        re.compile(r"disregard\s+(all\s+)?system\s+prompts?", re.IGNORECASE),
+        # English directives & overrides
+        re.compile(r"ignore\s+(all\s+)?(previous|prior|above|system)\s+instructions?", re.IGNORECASE),
+        re.compile(r"disregard\s+(all\s+)?(system\s+prompts?|previous|prior|rules?)", re.IGNORECASE),
         re.compile(r"system\s*override", re.IGNORECASE),
-        re.compile(r"reveal\s+(all\s+)?(passwords?|keys?|secrets?|tokens?)", re.IGNORECASE),
-        re.compile(r"you\s+are\s+now\s+in\s+developer\s+mode", re.IGNORECASE),
+        re.compile(r"reveal\s+(all\s+)?(passwords?|keys?|secrets?|tokens?|system\s+prompt)", re.IGNORECASE),
+        re.compile(r"you\s+are\s+now\s+(in\s+developer\s+mode|unconstrained|jailbroken|dan)", re.IGNORECASE),
+        re.compile(r"bypass\s+(all\s+)?(safety|security|rules|filters?|guardrails?)", re.IGNORECASE),
+        re.compile(r"(print|output|display)\s+(the\s+)?(system\s+prompt|initial\s+instructions)", re.IGNORECASE),
+        re.compile(r"act\s+as\s+(an?\s+)?(unrestricted|evil|unfiltered|jailbroken)", re.IGNORECASE),
+        # Multilingual injection patterns
+        re.compile(r"ignora\s+(todas\s+las\s+)?(instrucciones|reglas)", re.IGNORECASE),  # Spanish
+        re.compile(r"ignoriere\s+(alle\s+)?(anweisungen|regeln)", re.IGNORECASE),  # German
+        re.compile(r"ignorez?\s+(toutes\s+les\s+)?instructions", re.IGNORECASE),  # French
+        re.compile(r"olvida\s+(todas\s+las\s+)?(instrucciones)", re.IGNORECASE),  # Spanish
+        re.compile(r"vergiss\s+(alle\s+)?(anweisungen)", re.IGNORECASE),  # German
     ]
 
     def __init__(self, max_context_tokens: int = 3500):
@@ -48,8 +59,13 @@ class ContextAssembler:
         return text.replace("<", "&lt;").replace(">", "&gt;")
 
     def sanitize_text(self, text: str) -> str:
-        """Neutralizes adversarial prompt injection patterns within document text."""
-        sanitized = text
+        """
+        Neutralizes adversarial prompt injection patterns within document text.
+        Applies Unicode NFKC normalization to collapse homoglyphs and compatibility characters.
+        """
+        # Collapse unicode lookalikes and homoglyphs into canonical forms
+        normalized = unicodedata.normalize("NFKC", text)
+        sanitized = normalized
         for pattern in self.INJECTION_PATTERNS:
             sanitized = pattern.sub("[FILTERED_INJECTION_ATTEMPT]", sanitized)
         return self.escape_xml_fences(sanitized)

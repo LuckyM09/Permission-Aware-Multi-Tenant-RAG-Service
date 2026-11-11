@@ -30,29 +30,8 @@ import { particleDelete } from "@/components/ui/particle-delete";
 import { LiquidRippleButton } from "@/components/ui/liquid-ripple-button";
 import { ExpandableSearch } from "@/components/ui/expandable-search";
 import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
-
-interface UserContextData {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    email: string;
-    full_name: string;
-  };
-  context?: {
-    tenant_id: string;
-    role: string;
-    is_admin: boolean;
-    group_ids: string[];
-    groups: string[];
-  };
-  tenants?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_current: boolean;
-  }>;
-}
+import { addNotification } from "@/lib/notifications";
+import { useAuthSession, UserContextData } from "@/lib/auth-session";
 
 interface DocumentItem {
   id: string;
@@ -70,8 +49,7 @@ interface DocumentItem {
 
 export default function DocumentsPage() {
   const router = useRouter();
-  const [authData, setAuthData] = useState<UserContextData | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { authData, authLoading, refreshSession } = useAuthSession();
 
   const [documents, setDocuments] = useState<DocumentItem[]>([]);
   const [docsLoading, setDocsLoading] = useState(true);
@@ -96,24 +74,6 @@ export default function DocumentsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch session context
-  const fetchSession = useCallback(async () => {
-    try {
-      setAuthLoading(true);
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuthData(data);
-      } else {
-        setAuthData({ authenticated: false });
-      }
-    } catch {
-      setAuthData({ authenticated: false });
-    } finally {
-      setAuthLoading(false);
-    }
-  }, []);
 
   // Fetch all departmental groups in tenant
   const fetchTenantGroups = useCallback(async () => {
@@ -150,8 +110,7 @@ export default function DocumentsPage() {
 
   useEffect(() => {
     document.title = "Documents Hub | VaultRAG Enterprise";
-    fetchSession();
-  }, [fetchSession]);
+  }, []);
 
   useEffect(() => {
     if (!authData) return;
@@ -251,6 +210,14 @@ export default function DocumentsPage() {
       if (!res.ok) {
         setUploadError(data.error || data.detail || `Upload failed with status ${res.status}.`);
       } else {
+        const docTitle = title.trim() || selectedFile?.name || "Document";
+        addNotification({
+          title: "Document Ready",
+          description: `"${docTitle}" has been chunked and indexed into the vector vault.`,
+          type: "success",
+          userEmail: authData?.user?.email,
+        });
+
         setUploadSuccess(
           data.deduplicated
             ? "Duplicate content detected: Document linked instantly via SHA-256."
@@ -337,7 +304,7 @@ export default function DocumentsPage() {
   if (authLoading || !authData) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Loading document vault security context...
         </p>
@@ -348,7 +315,7 @@ export default function DocumentsPage() {
   if (!authData.authenticated) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Authentication required. Redirecting to sign in...
         </p>
@@ -363,7 +330,7 @@ export default function DocumentsPage() {
           userEmail={authData?.user?.email}
           tenantName={currentTenant?.name}
           role={authData?.context?.role}
-          onLogout={fetchSession}
+          onLogout={() => refreshSession(true)}
         />
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="max-w-md w-full p-8 rounded-2xl border border-[#E6E6E1] bg-white text-center space-y-4 shadow-elevated">
@@ -373,14 +340,14 @@ export default function DocumentsPage() {
             <h2 className="text-xl font-bold text-[#0F172A]">Knowledge Management Restricted</h2>
             <p className="text-xs text-[#52525B] leading-relaxed">
               Document uploads and ACL permissions are managed exclusively by administrators.
-              Your account has access to query permitted documents in Anti-Leak Chat.
+              Your account has access to query permitted documents in Secure Chat.
             </p>
             <div className="pt-2">
               <Link
                 href="/chat"
                 className="px-5 py-2.5 rounded-xl bg-[#0F172A] text-white text-xs font-semibold inline-block hover:bg-[#1E293B] shadow-xs"
               >
-                Return to Anti-Leak Chat →
+                Return to Secure Chat →
               </Link>
             </div>
           </div>
@@ -396,7 +363,7 @@ export default function DocumentsPage() {
         userEmail={authData?.user?.email}
         tenantName={currentTenant?.name}
         role={authData?.context?.role}
-        onLogout={fetchSession}
+        onLogout={() => refreshSession(true)}
       />
 
       {/* Main Content */}
@@ -408,8 +375,8 @@ export default function DocumentsPage() {
               Document Knowledge Base
             </h1>
             <p className="text-xs sm:text-sm text-[#52525B] max-w-2xl leading-relaxed">
-              Upload PDF, DOCX, TXT, or Markdown documents. Files are validated via magic-bytes,
-              chunked, and embedded into 1,536-dimensional vectors with tenant and ACL tags.
+              Upload PDF, DOCX, TXT, or Markdown documents. Files are securely processed
+              and protected so only authorized team members can access them.
             </p>
           </div>
 
@@ -578,25 +545,23 @@ export default function DocumentsPage() {
 
             {/* Submit Button */}
             <div className="flex justify-end pt-1">
-              <LiquidRippleButton
+              <button
                 type="submit"
-                variant="dark"
                 disabled={!selectedFile || isUploading}
-                showIcon={false}
-                className="min-h-11 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2"
+                className="min-h-11 px-6 py-2.5 rounded-xl text-xs sm:text-sm font-semibold inline-flex flex-row items-center justify-center gap-2.5 bg-[#0F172A] text-white hover:bg-[#1E293B] shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
               >
                 {isUploading ? (
                   <>
-                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Ingesting &amp; Embedding...</span>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                    <span className="whitespace-nowrap">Ingesting &amp; Embedding...</span>
                   </>
                 ) : (
                   <>
-                    <Upload className="w-4 h-4 text-[#00D2FF]" />
-                    <span>Upload &amp; Ingest Document</span>
+                    <Upload className="w-4 h-4 text-[#00D2FF] shrink-0" />
+                    <span className="whitespace-nowrap font-semibold">Upload &amp; Ingest Document</span>
                   </>
                 )}
-              </LiquidRippleButton>
+              </button>
             </div>
           </form>
         </section>
@@ -640,7 +605,7 @@ export default function DocumentsPage() {
           {/* Table */}
           {docsLoading || authLoading ? (
             <div className="py-16 text-center text-xs text-[#64748B] flex flex-col items-center justify-center gap-3">
-              <KineticTextLoader text="VaultRAG" className="scale-75" />
+              <KineticTextLoader text="Loading" className="scale-75" />
               <span className="text-xs text-[#64748B] font-mono">Synchronizing document catalog &amp; RLS vectors...</span>
             </div>
           ) : filteredDocuments.length === 0 ? (

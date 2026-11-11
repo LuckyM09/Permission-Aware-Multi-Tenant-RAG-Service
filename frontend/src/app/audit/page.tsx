@@ -25,6 +25,7 @@ import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { ActivityFeed } from "@/components/ui/activity-feed";
 import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
+import { useAuthSession, UserContextData } from "@/lib/auth-session";
 
 interface AuditLogItem {
   id: string;
@@ -41,32 +42,9 @@ interface AuditLogItem {
   created_at: string;
 }
 
-interface UserContextData {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    email: string;
-    full_name: string;
-  };
-  context?: {
-    tenant_id: string;
-    role: string;
-    is_admin: boolean;
-    group_ids: string[];
-    groups: string[];
-  };
-  tenants?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_current: boolean;
-  }>;
-}
-
 export default function AuditPage() {
   const router = useRouter();
-  const [authData, setAuthData] = useState<UserContextData | null>(null);
+  const { authData, authLoading, refreshSession } = useAuthSession();
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
@@ -79,21 +57,6 @@ export default function AuditPage() {
 
   // Inspect Modal
   const [selectedLog, setSelectedLog] = useState<AuditLogItem | null>(null);
-
-  // Fetch Session
-  const fetchSession = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuthData(data);
-      } else {
-        setAuthData({ authenticated: false });
-      }
-    } catch {
-      setAuthData({ authenticated: false });
-    }
-  }, []);
 
   // Fetch Audit Logs
   const fetchLogs = useCallback(async () => {
@@ -130,8 +93,7 @@ export default function AuditPage() {
 
   useEffect(() => {
     document.title = "Audit Trail | VaultRAG Enterprise";
-    fetchSession();
-  }, [fetchSession]);
+  }, []);
 
   useEffect(() => {
     if (!authData) return;
@@ -223,10 +185,10 @@ export default function AuditPage() {
     }
   };
 
-  if (!authData) {
+  if (authLoading || !authData) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Loading compliance audit trail...
         </p>
@@ -237,7 +199,7 @@ export default function AuditPage() {
   if (!authData.authenticated) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Authentication required. Redirecting to sign in...
         </p>
@@ -249,9 +211,9 @@ export default function AuditPage() {
   if (!authData.context?.is_admin) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
-          Member account verified. Redirecting to Anti-Leak Chat...
+          Member account verified. Redirecting to Secure Chat...
         </p>
       </div>
     );
@@ -264,7 +226,7 @@ export default function AuditPage() {
         userEmail={authData?.user?.email}
         tenantName={currentTenant?.name}
         role={authData?.context?.role}
-        onLogout={fetchSession}
+        onLogout={() => refreshSession(true)}
       />
 
       {/* Main Content */}

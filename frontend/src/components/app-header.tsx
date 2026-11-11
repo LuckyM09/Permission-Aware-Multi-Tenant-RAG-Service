@@ -24,6 +24,7 @@ import {
 import { MorphingMegaMenu } from "@/components/ui/morphing-mega-menu";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
+import { getCachedAuthSession, clearCachedAuthSession, fetchAuthSession } from "@/lib/auth-session";
 
 // Brand Logo SVG matching the user's "H • Monoline keyhole" design
 export function VaultRAGLogo({ className = "h-8" }: { className?: string }) {
@@ -92,7 +93,9 @@ export function AppHeader({
   const [supportMessage, setSupportMessage] = useState("");
   const [supportSubmitted, setSupportSubmitted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isPlatformOwner, setIsPlatformOwner] = useState(false);
+  const [isPlatformOwner, setIsPlatformOwner] = useState<boolean>(() => {
+    return Boolean(getCachedAuthSession()?.user?.is_platform_owner);
+  });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -105,13 +108,15 @@ export function AppHeader({
 
   useEffect(() => {
     if (!userEmail) return;
+    const session = getCachedAuthSession();
+    if (session?.user?.is_platform_owner !== undefined) {
+      setIsPlatformOwner(Boolean(session.user.is_platform_owner));
+      return;
+    }
     let cancelled = false;
-    fetch("/api/auth/me")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled) setIsPlatformOwner(Boolean(d?.user?.is_platform_owner));
-      })
-      .catch(() => {});
+    fetchAuthSession().then((d) => {
+      if (!cancelled) setIsPlatformOwner(Boolean(d?.user?.is_platform_owner));
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -136,6 +141,7 @@ export function AppHeader({
     : baseNavItems;
 
   const handleLogoutClick = async () => {
+    clearCachedAuthSession();
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {
@@ -148,9 +154,9 @@ export function AppHeader({
   };
 
   return (
-    <header className="sticky top-3 sm:top-4 z-40 max-w-4xl lg:max-w-5xl mx-auto px-4 w-full pointer-events-auto">
+    <header className="sticky top-3 sm:top-4 z-40 max-w-5xl xl:max-w-7xl mx-auto px-2 sm:px-4 w-full pointer-events-auto">
       <div
-        className={`w-full rounded-2xl border transition-all duration-300 flex items-center justify-between gap-4 px-4 sm:px-6 py-2 sm:py-2.5 ${
+        className={`w-full rounded-2xl border transition-all duration-300 flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-2 sm:py-2.5 ${
           isScrolled
             ? "bg-white/95 backdrop-blur-md border-[#E6E6E1] shadow-card"
             : "bg-white/90 backdrop-blur-sm border-[#E6E6E1]/70 shadow-xs"
@@ -174,7 +180,7 @@ export function AppHeader({
           // Authenticated Workspace Navigation Tabs
           <nav
             aria-label="Workspace Navigation"
-            className="hidden md:flex items-center gap-1"
+            className="hidden md:flex items-center gap-1 shrink-0 overflow-x-auto no-scrollbar"
           >
             {navItems.map((item) => {
               const isActive = pathname === item.href;
@@ -184,14 +190,14 @@ export function AppHeader({
                   key={item.href}
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] ${
+                  className={`whitespace-nowrap shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] ${
                     isActive
                       ? "bg-[#0F172A] text-white font-semibold shadow-xs"
                       : "text-[#52525B] hover:text-[#0F172A] hover:bg-[#F4F4F0]"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5" strokeWidth={isActive ? 2.2 : 1.75} />
-                  <span>{item.label}</span>
+                  <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={isActive ? 2.2 : 1.75} />
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               );
             })}
@@ -207,16 +213,16 @@ export function AppHeader({
         )}
 
         {/* Right Section */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {userEmail && <NotificationBell />}
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          {userEmail && <NotificationBell userEmail={userEmail} />}
 
           {/* Active Tenant / Role Chip */}
           {tenantName && (
-            <div className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-lg border border-[#E6E6E1] bg-white text-xs text-[#52525B] shadow-2xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-medium text-[#0F172A]">{tenantName}</span>
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-[#E6E6E1] bg-white text-xs text-[#52525B] shadow-2xs whitespace-nowrap shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="font-medium text-[#0F172A] truncate max-w-[90px]">{tenantName}</span>
               {role && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-[#F4F4F0] text-[#52525B] border border-[#E6E6E1]">
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono uppercase bg-[#F4F4F0] text-[#52525B] border border-[#E6E6E1] shrink-0">
                   {role}
                 </span>
               )}
@@ -225,22 +231,22 @@ export function AppHeader({
 
           {/* User Profile / Logout */}
           {userEmail ? (
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 type="button"
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 aria-expanded={userDropdownOpen}
                 aria-haspopup="true"
                 aria-label="User account menu"
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-[#E6E6E1] bg-white hover:bg-[#F4F4F0] text-xs text-[#0F172A] transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl border border-[#E6E6E1] bg-white hover:bg-[#F4F4F0] text-xs text-[#0F172A] transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer whitespace-nowrap shrink-0"
               >
-                <div className="w-5 h-5 rounded-md bg-[#0F172A] text-white flex items-center justify-center font-bold text-[10px] uppercase">
+                <div className="w-5 h-5 rounded-md bg-[#0F172A] text-white flex items-center justify-center font-bold text-[10px] uppercase shrink-0">
                   {userEmail.charAt(0)}
                 </div>
-                <span className="font-semibold max-w-[120px] sm:max-w-[160px] truncate hidden sm:inline text-[#0F172A]">
+                <span className="font-semibold max-w-[100px] sm:max-w-[150px] truncate hidden sm:inline text-[#0F172A]">
                   {userEmail}
                 </span>
-                <ChevronDown className="w-3 h-3 text-[#64748B]" />
+                <ChevronDown className="w-3 h-3 text-[#64748B] shrink-0" />
               </button>
 
               {userDropdownOpen && (

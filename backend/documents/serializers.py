@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from accounts.context import get_user_context
 from ingestion.parsers import detect_file_type
-from tenants.models import Group
+from tenants.models import Group, GroupMember
 
 from .models import Chunk, Document, DocumentPermission
 
@@ -104,6 +104,48 @@ class DocumentUploadSerializer(serializers.Serializer):
                 pass
 
         return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if not request:
+            return attrs
+
+        user_ctx = get_user_context(request)
+        visibility = attrs.get("visibility", Document.Visibility.PRIVATE)
+        group_ids = attrs.get("group_ids", [])
+
+        if visibility == Document.Visibility.GROUP:
+            if not group_ids:
+                raise serializers.ValidationError(
+                    {"group_ids": "At least one group ID must be specified when visibility is set to group."}
+                )
+
+            # Ensure all group IDs belong to the current tenant
+            valid_groups = Group.objects.filter(
+                tenant_id=user_ctx.tenant_id, id__in=group_ids
+            )
+            if valid_groups.count() != len(group_ids):
+                raise serializers.ValidationError(
+                    {"group_ids": "One or more specified groups do not exist within this tenant."}
+                )
+
+            # Non-admin members can only attach groups they are an active member of
+            if not user_ctx.is_admin():
+                user_group_set = set(
+                    GroupMember.objects.filter(
+                        user=request.user, group__tenant_id=user_ctx.tenant_id
+                    ).values_list("group_id", flat=True)
+                )
+                if user_ctx.group_ids:
+                    user_group_set.update(user_ctx.group_ids)
+
+                unauthorized_groups = set(group_ids) - user_group_set
+                if unauthorized_groups:
+                    raise serializers.ValidationError(
+                        {"group_ids": "You can only assign document visibility to groups you are an active member of."}
+                    )
+
+        return attrs
 
     def create(self, validated_data):
         request = self.context["request"]

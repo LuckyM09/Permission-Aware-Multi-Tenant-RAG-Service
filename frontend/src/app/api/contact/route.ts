@@ -68,6 +68,12 @@ export async function POST(req: Request) {
       });
 
       if (!backendRes.ok) {
+        if (backendRes.status === 429) {
+          return NextResponse.json(
+            { error: "Too many contact submissions. Please wait a few minutes before trying again." },
+            { status: 429 }
+          );
+        }
         console.error("[ContactForm] Backend DB returned non-OK status:", backendRes.status);
         return NextResponse.json(
           { error: "Unable to record inquiry at this time. Please try again later." },

@@ -27,6 +27,7 @@ import { AppFooter } from "@/components/app-footer";
 import { particleDelete } from "@/components/ui/particle-delete";
 import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
 import { ExpandableSearch } from "@/components/ui/expandable-search";
+import { useAuthSession, UserContextData } from "@/lib/auth-session";
 
 interface GroupInfo {
   id: string;
@@ -87,32 +88,9 @@ interface AccessExplorerResult {
   documents: AccessExplorerDocument[];
 }
 
-interface UserContextData {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    email: string;
-    full_name: string;
-  };
-  context?: {
-    tenant_id: string;
-    role: string;
-    is_admin: boolean;
-    group_ids: string[];
-    groups: string[];
-  };
-  tenants?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_current: boolean;
-  }>;
-}
-
 export default function AdminPage() {
   const router = useRouter();
-  const [authData, setAuthData] = useState<UserContextData | null>(null);
+  const { authData, authLoading, refreshSession } = useAuthSession();
   const [activeTab, setActiveTab] = useState<"members" | "groups" | "explorer">("members");
 
   // Members state
@@ -140,21 +118,6 @@ export default function AdminPage() {
   const [loadingExplorer, setLoadingExplorer] = useState<boolean>(false);
   const [explorerFilter, setExplorerFilter] = useState<"all" | "allowed" | "denied">("all");
   const [explorerSearch, setExplorerSearch] = useState<string>("");
-
-  // Session fetch
-  const fetchSession = useCallback(async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuthData(data);
-      } else {
-        setAuthData({ authenticated: false });
-      }
-    } catch {
-      setAuthData({ authenticated: false });
-    }
-  }, []);
 
   // Fetch Members
   const fetchMembers = useCallback(async () => {
@@ -224,8 +187,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     document.title = "Tenant Administration | VaultRAG Enterprise";
-    fetchSession();
-  }, [fetchSession]);
+  }, []);
 
   useEffect(() => {
     if (!authData) return;
@@ -434,10 +396,10 @@ export default function AdminPage() {
 
   const currentTenant = authData?.tenants?.find((t) => t.is_current);
 
-  if (!authData) {
+  if (authLoading || !authData) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Verifying security authorization credentials...
         </p>
@@ -448,7 +410,7 @@ export default function AdminPage() {
   if (!authData.authenticated) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Authentication required. Redirecting to sign in...
         </p>
@@ -459,9 +421,9 @@ export default function AdminPage() {
   if (!authData.context?.is_admin) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
-          Member account verified. Redirecting to Anti-Leak Chat...
+          Member account verified. Redirecting to Secure Chat...
         </p>
       </div>
     );
@@ -474,7 +436,7 @@ export default function AdminPage() {
         userEmail={authData?.user?.email}
         tenantName={currentTenant?.name}
         role={authData?.context?.role}
-        onLogout={fetchSession}
+        onLogout={() => refreshSession(true)}
       />
 
       {/* Main Content */}

@@ -92,16 +92,16 @@ export const LiquidRippleButton: React.FC<LiquidRippleButtonProps> = ({
       ))}
 
       {/* Button Content */}
-      <span className="relative z-10 inline-flex items-center gap-2 font-medium">
+      <span className="relative z-10 inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap">
         {showIcon && (
           <Droplets
             className={cn(
-              'h-4 w-4 transition-all duration-300',
+              'h-4 w-4 transition-all duration-300 shrink-0',
               isHovered ? 'scale-110 text-[#00D2FF] rotate-12' : 'opacity-80 text-current'
             )}
           />
         )}
-        <span>{children}</span>
+        {children}
       </span>
     </button>
   );

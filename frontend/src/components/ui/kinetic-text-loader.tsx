@@ -12,12 +12,15 @@ export function KineticTextLoader({
   text = "Loading", 
   ...props 
 }: KineticTextLoaderProps) {
-  const letters = text.split("");
+  // Kinetic bouncing-ball trajectory and squash-and-stretch letter physics 
+  // are geometrically calibrated to the word "Loading" (L trampoline & i tittle).
+  const displayText = "Loading";
+  const letters = displayText.split("");
 
   return (
     <div 
       className={cn("relative flex items-center justify-center font-light", className)} 
-      style={{ fontFamily: "'Roboto', sans-serif" }}
+      style={{ fontFamily: "'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}
       {...props}
     >
       <style>{`
@@ -47,11 +50,11 @@ export function KineticTextLoader({
       <div className="relative scale-75 md:scale-90 lg:scale-100">
         {/* The moving dot */}
         <div 
-          className="absolute z-10 top-[40px] left-[85px] w-[6px] h-[6px] bg-neutral-800 dark:bg-neutral-200 rounded-full"
+          className="absolute z-10 top-[40px] left-[85px] w-[6px] h-[6px] bg-[#0F172A] dark:bg-neutral-200 rounded-full"
           style={{ animation: "ktl-dotMove 1800ms cubic-bezier(0.25,0.25,0.75,0.75) infinite" }}
         />
         
-        <p className="relative m-0 whitespace-nowrap text-[3.75rem] text-neutral-800 dark:text-neutral-200" aria-label={text}>
+        <p className="relative m-0 whitespace-nowrap text-[3.75rem] text-[#0F172A] dark:text-neutral-200 select-none" aria-label={text || displayText}>
           {letters.map((char, index) => {
             if (index === 0 && char.toUpperCase() === 'L') {
               return (

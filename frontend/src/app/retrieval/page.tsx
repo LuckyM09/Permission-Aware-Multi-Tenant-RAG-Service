@@ -25,29 +25,7 @@ import {
 import { AppHeader } from "@/components/app-header";
 import { AppFooter } from "@/components/app-footer";
 import { KineticTextLoader } from "@/components/ui/kinetic-text-loader";
-
-interface UserContextData {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    email: string;
-    full_name: string;
-  };
-  context?: {
-    tenant_id: string;
-    role: string;
-    is_admin: boolean;
-    group_ids: string[];
-    groups: string[];
-  };
-  tenants?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_current: boolean;
-  }>;
-}
+import { useAuthSession, UserContextData } from "@/lib/auth-session";
 
 interface SearchResultItem {
   chunk_id: string;
@@ -65,8 +43,7 @@ interface SearchResultItem {
 
 export default function RetrievalPage() {
   const router = useRouter();
-  const [authData, setAuthData] = useState<UserContextData | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { authData, authLoading, refreshSession } = useAuthSession();
 
   // Search Parameters
   const [query, setQuery] = useState("");
@@ -90,27 +67,9 @@ export default function RetrievalPage() {
     { label: "Quantum Computing Stealth", query: "quantum computing chips stealth" },
   ];
 
-  const fetchSession = useCallback(async () => {
-    try {
-      setAuthLoading(true);
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuthData(data);
-      } else {
-        setAuthData({ authenticated: false });
-      }
-    } catch {
-      setAuthData({ authenticated: false });
-    } finally {
-      setAuthLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     document.title = "Semantic Search | VaultRAG Enterprise";
-    fetchSession();
-  }, [fetchSession]);
+  }, []);
 
   useEffect(() => {
     if (!authData) return;
@@ -173,7 +132,7 @@ export default function RetrievalPage() {
   if (authLoading || !authData) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Verifying semantic search authorization...
         </p>
@@ -184,7 +143,7 @@ export default function RetrievalPage() {
   if (!authData.authenticated) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
           Authentication required. Redirecting to sign in...
         </p>
@@ -195,9 +154,9 @@ export default function RetrievalPage() {
   if (!authData.context?.is_admin) {
     return (
       <div className="min-h-screen bg-[#FAF9F6] text-[#0F172A] flex flex-col items-center justify-center p-6 text-center font-sans">
-        <KineticTextLoader text="VaultRAG" className="scale-75" />
+        <KineticTextLoader text="Loading" className="scale-75" />
         <p className="text-xs text-[#64748B] font-mono mt-4">
-          Member account verified. Redirecting to Anti-Leak Chat...
+          Member account verified. Redirecting to Secure Chat...
         </p>
       </div>
     );
@@ -210,7 +169,7 @@ export default function RetrievalPage() {
         userEmail={authData?.user?.email}
         tenantName={currentTenant?.name}
         role={authData?.context?.role}
-        onLogout={fetchSession}
+        onLogout={() => refreshSession(true)}
       />
 
       {/* Main Content */}

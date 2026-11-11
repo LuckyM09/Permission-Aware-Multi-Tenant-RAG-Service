@@ -1,59 +1,61 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Bell,
   CheckCircle2,
   Shield,
   FileCheck,
-  Lock,
-  Trash2,
-  ExternalLink,
   X,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  NotificationItem,
+  loadStoredNotifications,
+  saveStoredNotifications,
+} from "@/lib/notifications";
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  type: "security" | "success" | "info" | "warning";
-  read: boolean;
+export interface NotificationBellProps extends React.HTMLAttributes<HTMLDivElement> {
+  userEmail?: string;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: "1",
-    title: "PostgreSQL 16 RLS Verified",
-    description: "Kernel-level tenant isolation active on chunks table.",
-    timestamp: "2m ago",
-    type: "security",
-    read: false,
-  },
-  {
-    id: "2",
-    title: "200-Query Benchmark Passed",
-    description: "Data leakage rate maintained at 0.00% across all personas.",
-    timestamp: "12m ago",
-    type: "success",
-    read: false,
-  },
-  {
-    id: "3",
-    title: "Citation Firewall Active",
-    description: "Strict token-level citation match enforcement enabled.",
-    timestamp: "1h ago",
-    type: "info",
-    read: true,
-  },
-];
-
-export function NotificationBell({ className }: { className?: string }) {
+export function NotificationBell({ className, userEmail }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isRinging, setIsRinging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load notifications from scoped localStorage on mount and when user changes
+  useEffect(() => {
+    const loaded = loadStoredNotifications(userEmail);
+    setNotifications(loaded);
+  }, [userEmail]);
+
+  // Listen for live new notification events emitted from across the application
+  useEffect(() => {
+    const handleNewNotification = (e: Event) => {
+      const customEvent = e as CustomEvent<NotificationItem>;
+      if (!customEvent.detail) return;
+      const item = customEvent.detail;
+      // Only accept if notification matches current user or is global
+      if (!item.userEmail || !userEmail || item.userEmail.toLowerCase() === userEmail.toLowerCase()) {
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === item.id)) return prev;
+          const updated = [item, ...prev].slice(0, 20);
+          saveStoredNotifications(updated, userEmail);
+          return updated;
+        });
+        setIsRinging(true);
+        setTimeout(() => setIsRinging(false), 800);
+      }
+    };
+
+    window.addEventListener("vaultrag:new_notification", handleNewNotification);
+    return () => {
+      window.removeEventListener("vaultrag:new_notification", handleNewNotification);
+    };
+  }, [userEmail]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -67,13 +69,24 @@ export function NotificationBell({ className }: { className?: string }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
+  const markAllAsRead = useCallback(() => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      saveStoredNotifications(updated, userEmail);
+      return updated;
+    });
+  }, [userEmail]);
 
-  const clearNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
+  const clearNotification = useCallback(
+    (id: string) => {
+      setNotifications((prev) => {
+        const updated = prev.filter((n) => n.id !== id);
+        saveStoredNotifications(updated, userEmail);
+        return updated;
+      });
+    },
+    [userEmail]
+  );
 
   return (
     <div ref={containerRef} className={cn("relative inline-block", className)}>
@@ -87,7 +100,7 @@ export function NotificationBell({ className }: { className?: string }) {
         }}
         onMouseEnter={() => setIsRinging(true)}
         onMouseLeave={() => setIsRinging(false)}
-        aria-label="Security and system notifications"
+        aria-label="Workspace notifications"
         aria-expanded={open}
         className={cn(
           "relative p-2 rounded-xl border border-[#E6E6E1] bg-white hover:bg-[#FAF9F6] text-[#52525B] hover:text-[#0F172A] transition-all shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer",
@@ -101,7 +114,7 @@ export function NotificationBell({ className }: { className?: string }) {
           )}
         />
 
-        {/* Unread Ping Badge */}
+        {/* Unread Ping Badge: ONLY rendered when real unread notifications exist */}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 flex h-4 w-4">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D2FF] opacity-75" />
@@ -117,7 +130,7 @@ export function NotificationBell({ className }: { className?: string }) {
         <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl border border-[#E6E6E1] bg-white p-4 shadow-elevated z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between border-b border-[#E6E6E1] pb-3 mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#0F172A]">System Notifications</span>
+              <span className="text-xs font-bold text-[#0F172A]">Notifications</span>
               {unreadCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-sky-50 text-[#0284C7] border border-sky-200">
                   {unreadCount} new
@@ -139,11 +152,18 @@ export function NotificationBell({ className }: { className?: string }) {
           {/* Notification List */}
           <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
             {notifications.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#64748B]">
-                No active notifications.
+              <div className="py-8 text-center text-xs text-[#64748B] space-y-1.5">
+                <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-1 opacity-80" />
+                <p className="font-semibold text-[#0F172A]">All caught up</p>
+                <p className="text-[11px] text-[#64748B] max-w-xs mx-auto leading-relaxed">
+                  Notifications for document ready, chunking status, and workspace events will appear here.
+                </p>
               </div>
             ) : (
               notifications.map((item) => {
+                const isDocReady = item.title.toLowerCase().includes("doc") || item.title.toLowerCase().includes("ready");
+                const isSignup = item.title.toLowerCase().includes("welcome");
+
                 return (
                   <div
                     key={item.id}
@@ -155,12 +175,14 @@ export function NotificationBell({ className }: { className?: string }) {
                     )}
                   >
                     <div className="w-7 h-7 rounded-lg bg-white border border-[#E6E6E1] flex items-center justify-center shrink-0 shadow-2xs text-[#0284C7]">
-                      {item.type === "security" ? (
+                      {isDocReady ? (
+                        <FileCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : isSignup ? (
+                        <Sparkles className="w-3.5 h-3.5 text-[#0284C7]" />
+                      ) : item.type === "security" ? (
                         <Shield className="w-3.5 h-3.5 text-[#00D2FF]" />
-                      ) : item.type === "success" ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       ) : (
-                        <Lock className="w-3.5 h-3.5 text-[#64748B]" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       )}
                     </div>
 
@@ -181,7 +203,8 @@ export function NotificationBell({ className }: { className?: string }) {
                     <button
                       type="button"
                       onClick={() => clearNotification(item.id)}
-                      className="opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-rose-600 transition-opacity p-0.5"
+                      aria-label="Dismiss notification"
+                      className="opacity-0 group-hover:opacity-100 text-[#94A3B8] hover:text-rose-600 transition-opacity p-0.5 cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -192,7 +215,7 @@ export function NotificationBell({ className }: { className?: string }) {
           </div>
 
           <div className="pt-3 mt-3 border-t border-[#E6E6E1] flex items-center justify-between text-[11px] text-[#64748B]">
-            <span>Security Ledger Live</span>
+            <span>System Security Status</span>
             <span className="flex items-center gap-1 font-mono text-emerald-600 font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Healthy
@@ -205,4 +228,3 @@ export function NotificationBell({ className }: { className?: string }) {
 }
 
 export default NotificationBell;
-

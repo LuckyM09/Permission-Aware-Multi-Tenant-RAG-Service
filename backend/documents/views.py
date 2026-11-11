@@ -65,14 +65,15 @@ class DocumentListCreateView(APIView):
                 try:
                     ingest_document_task.delay(doc_id, tenant_id_str)
                 except Exception as exc:
-                    # If Celery worker/Redis is not running (e.g. lightweight local dev), run synchronously
-                    logger.warning(
-                        f"Celery dispatch failed ({exc}), falling back to synchronous ingestion."
+                    # Ingestion must never run synchronously on the web worker thread to prevent thread starvation DoS
+                    logger.error(
+                        f"Celery dispatch failed for document {doc_id} ({exc}). "
+                        "Marking document as failed so web workers remain responsive."
                     )
-                    try:
-                        ingest_document_task(doc_id, tenant_id_str)
-                    except Exception as sync_exc:
-                        logger.error(f"Synchronous ingestion failed: {sync_exc}")
+                    Document.objects.filter(id=doc_id).update(
+                        status=Document.Status.FAILED,
+                        error_message="Ingestion queue temporarily unavailable. Please retry from documents vault.",
+                    )
 
             transaction.on_commit(_dispatch)
 

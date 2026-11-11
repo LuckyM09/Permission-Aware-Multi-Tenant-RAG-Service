@@ -46,96 +46,96 @@ const MENU_SECTIONS: MenuSection[] = [
     label: "Platform",
     items: [
       {
-        title: "Anti-Leak Chat",
-        description: "Zero-leakage conversational RAG with citation firewalling.",
-        href: "/chat",
-        icon: MessageSquare,
+        title: "Anti-Leak Security",
+        description: "Strict isolation prevents unauthorized data leaks across teams.",
+        href: "/#pipeline",
+        icon: Shield,
         badge: "Core",
       },
       {
-        title: "Document Vault",
-        description: "Ingest PDFs and markdown with group & tenant visibility.",
-        href: "/documents",
+        title: "Document Access Control",
+        description: "Role-based visibility ensures members only see authorized files.",
+        href: "/#architecture",
         icon: FileText,
       },
       {
-        title: "Retrieval Explorer",
-        description: "Hybrid vector + BM25 test bench with reranker inspection.",
-        href: "/retrieval",
+        title: "Verified Search & Answers",
+        description: "Precise document search with guaranteed citation accuracy.",
+        href: "/#benchmarks",
         icon: Search,
       },
       {
-        title: "Compliance Ledger",
-        description: "PostgreSQL trigger-enforced immutable audit trail.",
-        href: "/audit",
+        title: "Compliance & Audit Trail",
+        description: "Tamper-evident activity logs for enterprise security compliance.",
+        href: "/#architecture",
         icon: History,
       },
     ],
     featured: {
-      title: "Interactive Live Personas",
-      description: "Test Alice, Bob, Carol, and Mallory in real time.",
+      title: "Interactive Permission Demo",
+      description: "See how department access and role permissions work in real time.",
       href: "/#simulator",
-      cta: "Launch Simulator",
+      cta: "Try Interactive Demo",
     },
   },
   {
     id: "security",
-    label: "Security & RLS",
+    label: "Security",
     items: [
       {
-        title: "PostgreSQL FORCE RLS",
-        description: "Storage-level row filtering blocks leaks at the engine layer.",
+        title: "Database-Level Isolation",
+        description: "Storage-level row filtering blocks leaks at the database layer.",
         href: "/#pipeline",
         icon: Database,
-        badge: "PostgreSQL 16",
+        badge: "Protected",
       },
       {
-        title: "Sub-15ms Pre-Filter",
-        description: "SQL-indexed pre-filters run before vector similarity math.",
+        title: "Permission Pre-Filter",
+        description: "Access controls are evaluated before documents are searched.",
         href: "/#pipeline",
         icon: Cpu,
       },
       {
-        title: "Tenant Admin Console",
-        description: "RBAC, security groups, and simulated permission explorer.",
-        href: "/admin",
+        title: "Department & Role Controls",
+        description: "Custom groups and role boundaries tailored to your organization.",
+        href: "/#architecture",
         icon: Users,
       },
       {
-        title: "Citation Shield",
-        description: "Token-level citation validation eliminates hallucinations.",
+        title: "Citation Verification Shield",
+        description: "Every AI response is cross-checked to eliminate hallucinations.",
         href: "/#architecture",
         icon: Lock,
       },
     ],
     featured: {
       title: "200-Query Benchmark",
-      description: "0.0% data leakage measured across 200 adversarial queries.",
+      description: "0.00% data leakage verified across adversarial testing.",
       href: "/#benchmarks",
       cta: "View Metrics",
     },
   },
   {
     id: "organization",
-    label: "Workspace",
+    label: "Get Started",
     items: [
       {
         title: "Register Organization",
-        description: "Provision a new tenant workspace in under 60 seconds.",
+        description: "Provision a private company workspace in under 60 seconds.",
         href: "/register",
         icon: Sparkles,
         badge: "Self-Serve",
       },
       {
-        title: "Tenant Sign In",
-        description: "Access your company's isolated intelligence portal.",
+        title: "Sign In to Workspace",
+        description: "Access your company's secure document intelligence portal.",
         href: "/login",
         icon: ArrowRight,
       },
       {
-        title: "Access Explorer",
-        description: "Simulate permissions for any employee in your organization.",
-        href: "/admin",
+        title: "Live Permission Simulator",
+        description: "Test department access and permissions interactively.",
+        href: "/#simulator",
         icon: Layers,
       },
     ],
@@ -225,7 +225,7 @@ export function MorphingMegaMenu({ className }: { className?: string }) {
                   {activeData.label} Capabilities
                 </span>
                 <span className="text-[10px] text-[#64748B] font-mono">
-                  PostgreSQL 16 Multi-Tenant
+                  Enterprise Data Protection
                 </span>
               </div>
 

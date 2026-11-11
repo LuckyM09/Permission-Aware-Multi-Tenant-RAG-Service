@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Shield,
   SlidersHorizontal,
@@ -23,29 +24,7 @@ import {
   ChatCitationItem,
   ChatCitationImage,
 } from "@/components/chat-ui";
-
-interface UserContextData {
-  authenticated: boolean;
-  user?: {
-    id: string;
-    email: string;
-    full_name: string;
-  };
-  context?: {
-    tenant_id: string;
-    role: string;
-    is_admin: boolean;
-    group_ids: string[];
-    groups: string[];
-  };
-  tenants?: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    role: string;
-    is_current: boolean;
-  }>;
-}
+import { useAuthSession, UserContextData } from "@/lib/auth-session";
 
 interface RawChatMessage {
   id?: string;
@@ -64,8 +43,8 @@ interface ConversationItem {
 }
 
 export default function ChatPage() {
-  const [authData, setAuthData] = useState<UserContextData | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const router = useRouter();
+  const { authData, authLoading, refreshSession } = useAuthSession();
 
   // Conversations state
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
@@ -113,24 +92,6 @@ export default function ChatPage() {
     },
   ];
 
-  // Auth session fetch
-  const fetchSession = useCallback(async () => {
-    try {
-      setAuthLoading(true);
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setAuthData(data);
-      } else {
-        setAuthData({ authenticated: false });
-      }
-    } catch {
-      setAuthData({ authenticated: false });
-    } finally {
-      setAuthLoading(false);
-    }
-  }, []);
-
   // Fetch list of conversations
   const fetchConversations = useCallback(async () => {
     try {
@@ -162,9 +123,17 @@ export default function ChatPage() {
 
   useEffect(() => {
     document.title = "Chat Engine | VaultRAG Enterprise";
-    fetchSession();
-    fetchConversations();
-  }, [fetchSession, fetchConversations]);
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && authData) {
+      if (!authData.authenticated) {
+        router.replace("/login");
+      } else {
+        fetchConversations();
+      }
+    }
+  }, [authLoading, authData, router, fetchConversations]);
 
   useEffect(() => {
     if (activeConvId) {
@@ -484,10 +453,22 @@ export default function ChatPage() {
   if (authLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-[#FAF9F6] p-6 text-center">
-        <KineticTextLoader text="VaultRAG" className="scale-75 sm:scale-90" />
+        <KineticTextLoader text="Loading" className="scale-75 sm:scale-90" />
         <p className="text-xs text-[#64748B] font-mono mt-4 animate-pulse">
-          Initializing tenant session &amp; row-level security kernel...
+          Loading workspace and security permissions...
         </p>
+      </div>
+    );
+  }
+
+  if (!authData?.authenticated) {
+    return (
+      <div className="h-screen bg-[#FAF9F6] flex items-center justify-center p-4">
+        <div className="p-6 rounded-2xl bg-white border border-[#E6E6E1] shadow-card text-center space-y-3">
+          <p className="text-sm font-semibold text-[#0F172A]">
+            Authentication required. Redirecting to sign in...
+          </p>
+        </div>
       </div>
     );
   }
@@ -499,7 +480,7 @@ export default function ChatPage() {
         userEmail={authData?.user?.email}
         tenantName={currentTenant?.name}
         role={authData?.context?.role}
-        onLogout={fetchSession}
+        onLogout={() => refreshSession(true)}
       />
 
       {/* Main Chat Interface */}
@@ -523,9 +504,9 @@ export default function ChatPage() {
 
           <div className="flex-1 min-w-0 min-h-0 h-full flex flex-col bg-[#FAF9F6] relative overflow-hidden">
             <ChatHeader
-              title="Anti-Leak Chat Assistant"
-              subtitle="NVIDIA Nemotron 3.5 • XML-Fenced Delimiters"
-              modelBadge="7 Golden Invariants"
+              title="Secure Chat Assistant"
+              subtitle="AI Assistant • Source-Verified Answers"
+              modelBadge="Privacy Protected"
               onClearChat={() => setMessages([])}
             />
 

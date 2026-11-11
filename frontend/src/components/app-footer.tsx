@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Github, Mail, Terminal, Shield } from "lucide-react";
+import { Github, Mail, Linkedin, Shield } from "lucide-react";
 
 export function AppFooter() {
   const currentYear = new Date().getFullYear();
@@ -71,7 +71,7 @@ export function AppFooter() {
                   Row-Level Security &amp; Anti-Leak Shield
                 </p>
                 <p className="mt-0.5 font-mono text-[11px] text-[#64748B]">
-                  Zero-Leakage Assurance • Sub-15ms Pre-filtering
+                  Zero-Leakage Assurance • Verified Data Privacy
                 </p>
               </div>
             </div>
@@ -86,30 +86,32 @@ export function AppFooter() {
             {/* Framed Tile Buttons matching the LFS icon block */}
             <div className="mt-3 flex items-center gap-2.5">
               <a
-                href="https://github.com/LuckyM09/Permission-Aware-Multi-Tenant-RAG-Service"
+                href="https://github.com/LuckyM09"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="GitHub Repository"
+                aria-label="GitHub Profile"
                 className="w-10 h-10 rounded-lg bg-[#FAF9F6] border border-[#E6E6E1] flex items-center justify-center text-[#0F172A] hover:bg-[#0F172A] hover:text-[#00D2FF] hover:border-[#0F172A] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
               >
                 <Github className="w-4 h-4" />
               </a>
 
               <a
-                href="mailto:contact@vaultrag.internal"
+                href="https://www.linkedin.com/in/lucky-meena-0788b6394/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="LinkedIn Profile"
+                className="w-10 h-10 rounded-lg bg-[#FAF9F6] border border-[#E6E6E1] flex items-center justify-center text-[#0F172A] hover:bg-[#0077B5] hover:text-white hover:border-[#0077B5] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
+              >
+                <Linkedin className="w-4 h-4" />
+              </a>
+
+              <a
+                href="mailto:luckmeena191@gmail.com"
                 aria-label="Email Contact"
                 className="w-10 h-10 rounded-lg bg-[#FAF9F6] border border-[#E6E6E1] flex items-center justify-center text-[#0F172A] hover:bg-[#0F172A] hover:text-[#00D2FF] hover:border-[#0F172A] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
               >
                 <Mail className="w-4 h-4" />
               </a>
-
-              <Link
-                href="/chat"
-                aria-label="Open Chat Engine"
-                className="w-10 h-10 rounded-lg bg-[#FAF9F6] border border-[#E6E6E1] flex items-center justify-center text-[#0F172A] hover:bg-[#0F172A] hover:text-[#00D2FF] hover:border-[#0F172A] transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F172A] cursor-pointer"
-              >
-                <Terminal className="w-4 h-4" />
-              </Link>
             </div>
           </div>
 

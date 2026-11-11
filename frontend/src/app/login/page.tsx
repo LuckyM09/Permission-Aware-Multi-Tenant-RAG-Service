@@ -21,6 +21,7 @@ import { AppFooter } from "@/components/app-footer";
 import { Alert } from "@/components/ui/alert";
 import { LockInput } from "@/components/ui/lock-input";
 import { LiquidRippleButton } from "@/components/ui/liquid-ripple-button";
+import { fetchAuthSession } from "@/lib/auth-session";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -73,6 +74,8 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(data.error || "Authentication failed. Check your email, password, and organization slug.");
       }
+
+      await fetchAuthSession(true);
 
       const userRole = data.tenant?.role || data.context?.role || data.user?.role;
       if (userRole === "admin") {
@@ -130,7 +133,7 @@ export default function LoginPage() {
                   href={currentUserSession?.context?.is_admin ? "/admin" : "/chat"}
                   className="px-3.5 py-1.5 rounded-lg bg-[#0F172A] text-white text-xs font-semibold hover:bg-[#1E293B] shadow-xs inline-flex items-center gap-1.5"
                 >
-                  <span>{currentUserSession?.context?.is_admin ? "Continue to Admin Dashboard" : "Open Anti-Leak Chat"}</span>
+                  <span>{currentUserSession?.context?.is_admin ? "Continue to Admin Dashboard" : "Open Secure Chat"}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
                 <button

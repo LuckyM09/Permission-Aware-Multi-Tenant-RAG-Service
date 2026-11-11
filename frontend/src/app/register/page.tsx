@@ -24,6 +24,7 @@ import { AppFooter } from "@/components/app-footer";
 import { Alert } from "@/components/ui/alert";
 import { LockInput } from "@/components/ui/lock-input";
 import { LiquidRippleButton } from "@/components/ui/liquid-ripple-button";
+import { addNotification } from "@/lib/notifications";
 
 const PRESET_DEPARTMENTS = [
   "Engineering",
@@ -153,6 +154,12 @@ export default function RegisterPage() {
       }
 
       setSuccess(true);
+      addNotification({
+        title: "Welcome to VaultRAG",
+        description: "Your organization workspace is active. Upload documents to enable secure Q&A.",
+        type: "success",
+        userEmail: adminEmail.trim().toLowerCase(),
+      });
       setTimeout(() => {
         router.push("/admin");
       }, 1200);
@@ -205,7 +212,7 @@ export default function RegisterPage() {
                   href={currentUserSession?.context?.is_admin ? "/admin" : "/chat"}
                   className="px-3.5 py-1.5 rounded-lg bg-[#0F172A] text-white text-xs font-semibold hover:bg-[#1E293B] shadow-xs inline-flex items-center gap-1.5"
                 >
-                  <span>{currentUserSession?.context?.is_admin ? "Go to Admin Dashboard" : "Open Anti-Leak Chat"}</span>
+                  <span>{currentUserSession?.context?.is_admin ? "Go to Admin Dashboard" : "Open Secure Chat"}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
                 <Link

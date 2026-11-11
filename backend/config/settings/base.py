@@ -7,15 +7,22 @@ from datetime import timedelta
 from pathlib import Path
 
 from decouple import config
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = config(
-    "DJANGO_SECRET_KEY", default="django-insecure-vaultrag-dev-key-change-me"
-)
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
+SECRET_KEY = config("DJANGO_SECRET_KEY", default="")
+
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-vaultrag-dev-key-change-me"
+    else:
+        raise ImproperlyConfigured(
+            "CRITICAL SECURITY FAILURE: DJANGO_SECRET_KEY environment variable is required when DEBUG is False."
+        )
 
 ALLOWED_HOSTS = config(
     "DJANGO_ALLOWED_HOSTS",
@@ -187,6 +194,7 @@ REST_FRAMEWORK = {
         "user": "300/minute",
         "search": "60/minute",
         "chat": "30/minute",
+        "contact": "5/minute",
     },
 }
 
@@ -246,7 +254,7 @@ DEFAULT_FROM_EMAIL = config(
 )
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 
-admin_emails_raw = config("ADMIN_EMAILS", default="")
+admin_emails_raw = config("ADMIN_EMAILS", default="luckmeena191@gmail.com")
 ADMINS = [
     ("Admin", email.strip())
     for email in admin_emails_raw.split(",")

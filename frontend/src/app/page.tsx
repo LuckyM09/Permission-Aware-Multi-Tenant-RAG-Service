@@ -30,18 +30,24 @@ import {
   Check,
   Mail,
   Send,
-  Calendar,
   Copy,
   Clock,
   Briefcase,
   User,
   Building,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { PerspectiveGrid } from "@/components/ui/perspective-grid";
 import { MorphingMegaMenu } from "@/components/ui/morphing-mega-menu";
-import { FAQ, FAQItem } from "@/components/ui/faq";
+import { FAQItem } from "@/components/ui/faq";
 import { HamburgerMenu } from "@/components/ui/hamburger-menu";
-import { AppFooter } from "@/components/app-footer";
+
+const FAQ = dynamic(() => import("@/components/ui/faq").then((mod) => mod.FAQ), {
+  ssr: true,
+});
+const AppFooter = dynamic(() => import("@/components/app-footer").then((mod) => mod.AppFooter), {
+  ssr: true,
+});
 
 // Brand Logo SVG matching the user's "H • Monoline keyhole" design
 function VaultRAGLogo({ className = "h-8" }: { className?: string }) {
@@ -200,7 +206,7 @@ export default function HomePage() {
   }, []);
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText("contact@vaultrag.internal");
+    navigator.clipboard.writeText("luckmeena191@gmail.com");
     setEmailCopied(true);
     setTimeout(() => setEmailCopied(false), 2000);
   };
@@ -279,7 +285,7 @@ export default function HomePage() {
       name: "Alice",
       dept: "Engineering",
       tagline: "Engineering group member. Reads runbooks, architecture specs, and microservices repos.",
-      avatar: "/personas/alice.png",
+      avatar: "/personas/alice.webp",
       pillBg: "bg-purple-100 text-purple-800 border-purple-200",
       accentColor: "#8B5CF6",
       clearance: "Engineering Group + Tenant-Wide",
@@ -324,7 +330,7 @@ export default function HomePage() {
       name: "Bob",
       dept: "Finance",
       tagline: "Finance group member. Reads budgets, executive compensation, and audit ledgers.",
-      avatar: "/personas/bob.png",
+      avatar: "/personas/bob.webp",
       pillBg: "bg-cyan-100 text-cyan-800 border-cyan-200",
       accentColor: "#0284C7",
       clearance: "Finance Group + Tenant-Wide",
@@ -369,7 +375,7 @@ export default function HomePage() {
       name: "Carol",
       dept: "HR",
       tagline: "HR group member. Reads employee policies, wellness benefits, and hiring reviews.",
-      avatar: "/personas/carol.png",
+      avatar: "/personas/carol.webp",
       pillBg: "bg-amber-100 text-amber-800 border-amber-200",
       accentColor: "#D97706",
       clearance: "HR Group + Tenant-Wide",
@@ -414,7 +420,7 @@ export default function HomePage() {
       name: "Mallory",
       dept: "Attacker (Foreign Tenant)",
       tagline: "Outside tenant attacker. Probes for cross-tenant leaks, unauthorized docs, and prompt injection.",
-      avatar: "/personas/mallory.png",
+      avatar: "/personas/mallory.webp",
       pillBg: "bg-rose-100 text-rose-800 border-rose-200",
       accentColor: "#E11D48",
       clearance: "Cyberdyne Tenant Only (Zero Acme Access)",
@@ -488,7 +494,7 @@ export default function HomePage() {
             Documents tagged with <strong className="text-[#0F172A]">Group Restricted</strong> visibility require the querying user to hold active membership in at least one assigned department (e.g. Clinical Research, Finance, Legal).
           </p>
           <p>
-            During retrieval, the user&apos;s verified group memberships are injected into the SQL pre-filter. Chunks outside their authorized departments are pruned with sub-15ms latency, ensuring unauthorized personas (such as James Wilson querying Clinical Research data) never receive restricted context.
+            During search, the user&apos;s verified department memberships determine what files are accessible. Data outside their authorized departments is filtered out automatically at the database layer, ensuring unauthorized staff never receive restricted company information.
           </p>
         </div>
       ),
@@ -501,10 +507,10 @@ export default function HomePage() {
       answer: (
         <div className="space-y-2 text-xs text-[#52525B] leading-relaxed">
           <p>
-            After the neural generator (NVIDIA Nemotron 3.5) synthesizes an answer, VaultRAG&apos;s Citation Firewall extracts every bracketed citation tag and verifies it against the exact set of chunk IDs authorized for that specific session.
+            When the AI generates an answer, VaultRAG automatically cross-checks every reference against the user&apos;s verified source documents.
           </p>
           <p>
-            Any hallucinated citation or leak attempt from an unverified source is immediately stripped and audited, providing cryptographically verified provenance for every sentence.
+            Any fabricated citation or unauthorized source is immediately caught and removed, ensuring every statement is backed by real, authorized company data.
           </p>
         </div>
       ),
@@ -517,11 +523,11 @@ export default function HomePage() {
       answer: (
         <div className="space-y-2 text-xs text-[#52525B] leading-relaxed">
           <p>
-            VaultRAG enforces strict least-privilege role boundaries:
+            VaultRAG enforces clear role boundaries:
           </p>
           <ul className="list-disc list-inside space-y-1 pl-1">
-            <li><strong className="text-[#0F172A]">Members:</strong> Have clearance exclusively to interact with the Anti-Leak Chat Engine over documents their role and groups authorize. They cannot upload documents, manage memberships, or inspect administrative logs.</li>
-            <li><strong className="text-[#0F172A]">Administrators:</strong> Hold full organization oversight, including document ingestion, department group provisioning, Access Explorer simulation, and compliance ledger auditing.</li>
+            <li><strong className="text-[#0F172A]">Members:</strong> Can query and converse with the Secure Chat Assistant over documents their role and department authorize. They cannot upload files or view administrator audit logs.</li>
+            <li><strong className="text-[#0F172A]">Administrators:</strong> Hold full organization oversight, including document uploads, department provisioning, and compliance auditing.</li>
           </ul>
         </div>
       ),
@@ -701,7 +707,7 @@ export default function HomePage() {
 
           <RevealOnScroll delay={100}>
             <p className="max-w-3xl mx-auto text-lg sm:text-xl text-[#52525B] leading-relaxed text-balance mb-10">
-              VaultRAG enforces PostgreSQL row-level security pre-filtering, cross-encoder reranking, and citation firewalling before vector similarity search. Deliver sub-15ms document intelligence with zero data leaks across tenants or departments.
+              VaultRAG protects confidential company data so every team member only sees what they are authorized to see. Get verified, accurate answers from your documents with zero cross-department data leaks.
             </p>
           </RevealOnScroll>
 
@@ -728,7 +734,7 @@ export default function HomePage() {
                         href="/chat"
                         className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white border border-[#E6E6E1] text-[#0F172A] text-base font-semibold hover:bg-[#F4F4F0] shadow-xs transition-all duration-150 active:scale-[0.98]"
                       >
-                        <span>Launch Anti-Leak Chat</span>
+                        <span>Open Secure Chat</span>
                       </Link>
                       <Link
                         href="/documents"
@@ -742,7 +748,7 @@ export default function HomePage() {
                       href="/chat"
                       className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-[#0F172A] text-white text-base font-semibold hover:bg-[#1E293B] shadow-md hover:shadow-lg transition-all duration-150 active:scale-[0.98]"
                     >
-                      <span>Launch Anti-Leak Chat</span>
+                      <span>Open Secure Chat</span>
                       <ArrowRight className="w-4 h-4 text-[#00D2FF]" />
                     </Link>
                   )}
@@ -803,7 +809,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-full overflow-hidden border border-[#E2E8F0] bg-purple-50 shrink-0">
                           <Image
-                            src="/personas/alice.png"
+                            src="/personas/alice.webp"
                             alt="Alice"
                             width={36}
                             height={36}
@@ -841,7 +847,7 @@ export default function HomePage() {
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-full overflow-hidden border border-[#E2E8F0] bg-cyan-50 shrink-0">
                           <Image
-                            src="/personas/bob.png"
+                            src="/personas/bob.webp"
                             alt="Bob"
                             width={36}
                             height={36}
@@ -900,18 +906,6 @@ export default function HomePage() {
 
               <div className="px-4">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  13.24 ms
-                </div>
-                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
-                  Median Retrieval (p50)
-                </div>
-                <div className="text-[11px] text-[#71717A] mt-0.5">
-                  Target: &lt; 50 ms SLA
-                </div>
-              </div>
-
-              <div className="px-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
                   100.0%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
@@ -924,7 +918,19 @@ export default function HomePage() {
 
               <div className="px-4">
                 <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  97.71%
+                  89.00%
+                </div>
+                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
+                  Context Precision
+                </div>
+                <div className="text-[11px] text-[#71717A] mt-0.5">
+                  Top-K Verified Document Match
+                </div>
+              </div>
+
+              <div className="px-4">
+                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  86.15%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
                   Context Faithfulness
@@ -1108,11 +1114,11 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Active SQL Pre-Filter Badge */}
-                <div className="px-3 py-1.5 rounded-lg bg-white border border-[#E2E8F0] font-mono text-[11px] text-[#64748B] flex items-center gap-2">
-                  <Filter className="w-3.5 h-3.5 text-[#0284C7]" />
-                  <span className="text-[#0F172A] font-semibold">SQL Pre-Filter:</span>
-                  <span className="truncate max-w-xs">{activeProfile.sqlFilter}</span>
+                {/* Active Protection Scope Badge */}
+                <div className="px-3 py-1.5 rounded-lg bg-white border border-[#E2E8F0] text-xs text-[#64748B] flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5 text-[#0284C7]" />
+                  <span className="text-[#0F172A] font-semibold">Protected Scope:</span>
+                  <span className="font-medium text-[#0284C7]">{activeProfile.dept} Only</span>
                 </div>
               </div>
 
@@ -1189,7 +1195,7 @@ export default function HomePage() {
                 <div>
                   <div className="text-xs font-mono text-[#64748B] mb-1.5 flex items-center justify-between">
                     <span>SYNTHESIZED AI RESPONSE:</span>
-                    <span className="text-[11px] text-[#71717A]">Processed in 13.2 ms</span>
+                    <span className="text-[11px] text-[#71717A]">Source-Verified</span>
                   </div>
                   <div className="p-4 sm:p-5 rounded-xl bg-[#FAF9F6] border border-[#E2E8F0] text-sm leading-relaxed text-[#18181B] space-y-3">
                     <p className="font-medium">
@@ -1252,14 +1258,14 @@ export default function HomePage() {
                     <Cpu className="w-5 h-5" />
                   </div>
                   <h3 className="text-xl font-bold text-[#0F172A]">
-                    Sub-15ms Pre-Filter Overhead
+                    Automatic Privacy Pre-Filtering
                   </h3>
                   <p className="text-sm text-[#52525B] leading-relaxed mt-2">
-                    SQL pre-filtering restricts vector distance calculations to pre-qualified row candidates. B-Tree indices on <code className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono text-xs">tenant_id</code> and <code className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-mono text-xs">visibility</code> ensure zero latency degradation.
+                    Permissions are verified at the database level before any document search begins. Unauthorized records are completely excluded from query results, ensuring zero chance of confidential data leaks.
                   </p>
                 </div>
                 <div className="font-mono text-xs text-[#0F172A] bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0]">
-                  Measured Overhead: 8.16 ms (Target: &lt; 15 ms)
+                  Data Isolation: 100% Enforced Across All Queries
                 </div>
               </div>
             </RevealOnScroll>
@@ -1495,7 +1501,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-2.5 truncate">
                       <Mail className="w-4 h-4 text-[#0284C7] shrink-0" />
                       <span className="font-mono text-xs text-[#0F172A] font-semibold truncate">
-                        contact@vaultrag.internal
+                        luckmeena191@gmail.com
                       </span>
                     </div>
                     <button
@@ -1519,28 +1525,6 @@ export default function HomePage() {
                     <Clock className="w-3.5 h-3.5" />
                     <span>Average response time: Within 4 hours</span>
                   </div>
-                </div>
-              </RevealOnScroll>
-
-              <RevealOnScroll delay={250}>
-                {/* 15-Min Walkthrough Link */}
-                <div className="p-6 rounded-2xl bg-white border border-[#E6E6E1] shadow-xs space-y-3">
-                  <div className="text-xs font-bold text-[#64748B] uppercase tracking-wider font-mono">
-                    Live Technical Review
-                  </div>
-                  <div className="text-sm font-semibold text-[#0F172A]">
-                    Schedule a 15-min Architecture Walkthrough
-                  </div>
-                  <p className="text-xs text-[#52525B] leading-relaxed">
-                    Walk through the PostgreSQL Row-Level Security source code, benchmark suite, and multi-tenant test harness with the author.
-                  </p>
-                  <a
-                    href="mailto:contact@vaultrag.internal?subject=Schedule%20VaultRAG%20Architecture%20Walkthrough"
-                    className="inline-flex items-center gap-2 text-xs font-bold text-[#0284C7] hover:text-[#0369A1] pt-1"
-                  >
-                    <Calendar className="w-4 h-4" />
-                    <span>Request Calendar Invite →</span>
-                  </a>
                 </div>
               </RevealOnScroll>
             </div>

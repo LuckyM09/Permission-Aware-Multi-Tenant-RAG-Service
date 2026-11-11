@@ -14,15 +14,14 @@ const DEV_PERSONAS: Record<string, { email: string }> = {
 };
 
 export async function POST(request: Request) {
-  // Never permit persona switching in production unless explicitly flagged for demo
+  // Permanently disable in production and require explicit opt-in server flag in local dev
   if (
-    process.env.NODE_ENV === "production" &&
-    process.env.ENABLE_DEMO_SWITCHER !== "true" &&
-    process.env.NEXT_PUBLIC_ENABLE_DEMO_SWITCHER !== "true"
+    process.env.NODE_ENV === "production" ||
+    process.env.ENABLE_DEV_SWITCHER !== "true"
   ) {
     return NextResponse.json(
-      { error: "Dev persona switching is disabled in production." },
-      { status: 403 }
+      { error: "Dev persona switching is permanently disabled." },
+      { status: 404 }
     );
   }
 
@@ -38,7 +37,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const password = process.env.DEMO_USER_PASSWORD || "SecurePassword123!";
+    const password = process.env.DEMO_USER_PASSWORD;
+    if (!password) {
+      return NextResponse.json(
+        { error: "DEMO_USER_PASSWORD is not configured in local environment." },
+        { status: 500 }
+      );
+    }
 
     const res = await fetch(`${DJANGO_API_URL}/api/auth/token/`, {
       method: "POST",
@@ -63,7 +68,7 @@ export async function POST(request: Request) {
     // Store tokens in secure HttpOnly cookies (BFF Pattern)
     cookieStore.set("vaultrag_access", access, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60, // 1 hour
@@ -71,7 +76,7 @@ export async function POST(request: Request) {
 
     cookieStore.set("vaultrag_refresh", refresh, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7, // 7 days

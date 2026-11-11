@@ -2,6 +2,22 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  compress: true,
+  swcMinify: true,
+  poweredByHeader: false,
+  images: {
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
+  },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? { exclude: ["error", "warn"] }
+        : false,
+  },
   async rewrites() {
     return [
       {
