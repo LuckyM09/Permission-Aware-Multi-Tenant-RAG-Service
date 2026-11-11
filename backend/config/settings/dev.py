@@ -12,7 +12,14 @@ ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default=(
+        "django.core.mail.backends.smtp.EmailBackend"
+        if config("EMAIL_HOST_PASSWORD", default="")
+        else "django.core.mail.backends.console.EmailBackend"
+    ),
+)
 
 # Optional SQLite fallback for quick local testing without Docker containers
 if config("USE_SQLITE", default=False, cast=bool):
