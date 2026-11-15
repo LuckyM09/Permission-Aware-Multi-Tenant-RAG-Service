@@ -5,6 +5,8 @@ These settings are shared across all environments (dev, test, prod).
 
 from datetime import timedelta
 from pathlib import Path
+import sys
+import urllib.parse
 
 from decouple import config
 from django.core.exceptions import ImproperlyConfigured
@@ -94,29 +96,60 @@ WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
 # Database Configuration (PostgreSQL 16 + pgvector)
+# Supports DATABASE_URL (pooled for web traffic) and DATABASE_URL_UNPOOLED (direct for migrations)
+# as well as standard discrete POSTGRES_* environment variables.
 # ATOMIC_REQUESTS guarantees that every HTTP request runs inside a transaction,
 # ensuring PostgreSQL transaction-local RLS variables ('app.tenant_id') remain active.
-# Connects as non-superuser vaultrag_user by default so FORCE ROW LEVEL SECURITY is enforced.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": config("POSTGRES_DB", default="vaultrag_db"),
-        "USER": config(
-            "POSTGRES_DB_USER",
-            default=config("POSTGRES_APP_USER", default="vaultrag_user"),
-        ),
-        "PASSWORD": config(
-            "POSTGRES_DB_PASSWORD",
-            default=config(
-                "POSTGRES_APP_PASSWORD", default="vaultrag_secure_password_dev"
-            ),
-        ),
-        "HOST": config("POSTGRES_HOST", default="postgres"),
-        "PORT": config("POSTGRES_PORT", default="5432"),
-        "ATOMIC_REQUESTS": True,
-        "OPTIONS": {"sslmode": config("POSTGRES_SSLMODE", default="prefer")},
+_is_migrating = any(arg in sys.argv for arg in ["migrate", "makemigrations"])
+_unpooled_url = config("DATABASE_URL_UNPOOLED", default="")
+_pooled_url = config("DATABASE_URL", default="")
+_DATABASE_URL = (_unpooled_url if (_is_migrating and _unpooled_url) else _pooled_url) or _unpooled_url
+
+if _DATABASE_URL:
+    _url = urllib.parse.urlparse(_DATABASE_URL)
+    _query_params = urllib.parse.parse_qs(_url.query)
+    _options = {}
+    for _k, _v in _query_params.items():
+        if _v:
+            _options[_k] = _v[0]
+    if "sslmode" not in _options:
+        _options["sslmode"] = config("POSTGRES_SSLMODE", default="require")
+
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _url.path.lstrip("/") or config("POSTGRES_DB", default="neondb"),
+            "USER": urllib.parse.unquote(_url.username or "")
+            or config("POSTGRES_APP_USER", default=""),
+            "PASSWORD": urllib.parse.unquote(_url.password or "")
+            or config("POSTGRES_APP_PASSWORD", default=""),
+            "HOST": _url.hostname or config("POSTGRES_HOST", default=""),
+            "PORT": str(_url.port or 5432),
+            "ATOMIC_REQUESTS": True,
+            "OPTIONS": _options,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": config("POSTGRES_DB", default="vaultrag_db"),
+            "USER": config(
+                "POSTGRES_DB_USER",
+                default=config("POSTGRES_APP_USER", default="vaultrag_user"),
+            ),
+            "PASSWORD": config(
+                "POSTGRES_DB_PASSWORD",
+                default=config(
+                    "POSTGRES_APP_PASSWORD", default="vaultrag_secure_password_dev"
+                ),
+            ),
+            "HOST": config("POSTGRES_HOST", default="postgres"),
+            "PORT": config("POSTGRES_PORT", default="5432"),
+            "ATOMIC_REQUESTS": True,
+            "OPTIONS": {"sslmode": config("POSTGRES_SSLMODE", default="prefer")},
+        }
+    }
 
 # Multi-Tenancy Registration Invariants
 ALLOW_PUBLIC_TENANT_REGISTRATION = config(
