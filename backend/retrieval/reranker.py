@@ -1,3 +1,4 @@
+import math
 import re
 from typing import Any
 
@@ -8,11 +9,21 @@ class RerankerAdapter:
     """
     Cross-Encoder Reranker Adapter for VaultRAG.
     Re-scores and re-ranks retrieved candidate passages against the user query.
-    Supports external reranker APIs (e.g., Cohere) if configured, or uses an
-    in-engine semantic-lexical cross-scoring model for zero-dependency operation.
+    Supports NVIDIA NIM NeMo Retriever reranking (nvidia/nemotron-3.5-rerank-8b),
+    Cohere rerank (rerank-v3.5), or an in-engine semantic-lexical cross-scorer.
     """
 
     def __init__(self):
+        self.nvidia_api_key = config("NVIDIA_API_KEY", default="")
+        self.nvidia_rerank_model = config(
+            "RERANK_MODEL", default="nvidia/nemotron-3.5-rerank-8b"
+        )
+        self.use_nvidia = bool(
+            self.nvidia_api_key
+            and not self.nvidia_api_key.startswith("your_")
+            and len(self.nvidia_api_key) > 10
+        )
+
         self.cohere_api_key = config("COHERE_API_KEY", default="")
         self.use_cohere = bool(
             self.cohere_api_key and not self.cohere_api_key.startswith("your_")
@@ -35,6 +46,14 @@ class RerankerAdapter:
         if not candidates:
             return []
 
+        if self.use_nvidia:
+            try:
+                return self._rerank_nvidia(query, candidates, top_k)
+            except Exception as exc:
+                print(
+                    f"[RerankerAdapter] NVIDIA rerank failed ({exc}), falling back."
+                )
+
         if self.use_cohere:
             try:
                 return self._rerank_cohere(query, candidates, top_k)
@@ -44,6 +63,55 @@ class RerankerAdapter:
                 )
 
         return self._rerank_local(query, candidates, top_k)
+
+    def _rerank_nvidia(
+        self,
+        query: str,
+        candidates: list[dict[str, Any]],
+        top_k: int = 5,
+    ) -> list[dict[str, Any]]:
+        import requests
+
+        docs = [c.get("text", "") for c in candidates]
+        passages = [{"text": d} for d in docs]
+        url = f"https://ai.api.nvidia.com/v1/retrieval/{self.nvidia_rerank_model}/reranking"
+
+        payload = {
+            "model": self.nvidia_rerank_model,
+            "query": {"text": query},
+            "passages": passages,
+            "truncate": "END",
+        }
+        res = requests.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {self.nvidia_api_key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json=payload,
+            timeout=15,
+        )
+        if res.status_code != 200:
+            raise RuntimeError(
+                f"NVIDIA Rerank API returned {res.status_code}: {res.text[:120]}"
+            )
+
+        data = res.json()
+        rankings = data.get("rankings", [])
+        rankings.sort(key=lambda x: x.get("logit", -999.0), reverse=True)
+
+        results = []
+        for item in rankings[:top_k]:
+            idx = item["index"]
+            cand_copy = dict(candidates[idx])
+            logit = item.get("logit", 0.0)
+            norm_score = round(1.0 / (1.0 + math.exp(-logit)), 4)
+            cand_copy["rerank_score"] = norm_score
+            cand_copy["score"] = norm_score
+            cand_copy["reranked"] = True
+            results.append(cand_copy)
+        return results
 
     def _rerank_local(
         self,

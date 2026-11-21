@@ -139,25 +139,50 @@ def get_langchain_chat_model(
 ) -> BaseChatModel:
     """
     Returns a configured LangChain ChatModel instance.
-    Uses ChatOpenAI pointed at NVIDIA NIM when credentials are present,
+    Supports OpenRouter, NVIDIA NIM, and OpenAI endpoints,
     or MockLangChainChatModel in offline/test environments.
     """
-    resolved_api_key = (
-        api_key
-        or config("NVIDIA_API_KEY", default="")
-        or config("OPENAI_API_KEY", default="")
-    )
-    resolved_base_url = (
-        base_url
-        or config("NVIDIA_BASE_URL", default="")
-        or config("OPENAI_BASE_URL", default="https://integrate.api.nvidia.com/v1")
-    ).rstrip("/")
-    if not resolved_base_url:
-        resolved_base_url = "https://integrate.api.nvidia.com/v1"
-
     resolved_model = (
-        model or config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b")
+        model or config("LLM_MODEL", default="qwen/qwen3-30b-a3b-instruct-2507")
     )
+
+    openrouter_key = config("OPENROUTER_API_KEY", default="")
+    nvidia_key = config("NVIDIA_API_KEY", default="")
+    openai_key = config("OPENAI_API_KEY", default="")
+
+    # Determine provider routing based on model name and available keys
+    if api_key:
+        resolved_api_key = api_key
+        resolved_base_url = (base_url or "https://integrate.api.nvidia.com/v1").rstrip("/")
+    elif openrouter_key and (
+        "qwen" in resolved_model.lower()
+        or "llama" in resolved_model.lower()
+        or "/" in resolved_model and not resolved_model.startswith("nvidia/")
+    ):
+        resolved_api_key = openrouter_key
+        resolved_base_url = config(
+            "OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1"
+        ).rstrip("/")
+    elif nvidia_key and resolved_model.startswith("nvidia/"):
+        resolved_api_key = nvidia_key
+        resolved_base_url = config(
+            "NVIDIA_BASE_URL", default="https://integrate.api.nvidia.com/v1"
+        ).rstrip("/")
+    elif openrouter_key:
+        resolved_api_key = openrouter_key
+        resolved_base_url = config(
+            "OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1"
+        ).rstrip("/")
+    elif nvidia_key:
+        resolved_api_key = nvidia_key
+        resolved_base_url = config(
+            "NVIDIA_BASE_URL", default="https://integrate.api.nvidia.com/v1"
+        ).rstrip("/")
+    else:
+        resolved_api_key = openai_key
+        resolved_base_url = config(
+            "OPENAI_BASE_URL", default="https://api.openai.com/v1"
+        ).rstrip("/")
 
     is_valid_key = bool(
         resolved_api_key

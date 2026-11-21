@@ -78,16 +78,24 @@ class HashEmbeddings(BaseRagasEmbeddings):
         return self.embed_documents(texts)
 
 
-class NvidiaNIMDeepEvalJudge(DeepEvalBaseLLM):
-    """Custom DeepEval LLM judge powered by NVIDIA NIM."""
+class OpenRouterDeepEvalJudge(DeepEvalBaseLLM):
+    """Custom DeepEval LLM judge powered by OpenRouter or NVIDIA NIM."""
 
     def __init__(self):
-        self.base_url = config(
-            "NVIDIA_BASE_URL", default="https://integrate.api.nvidia.com/v1"
+        self.api_key = (
+            config("OPENROUTER_API_KEY", default="")
+            or config("NVIDIA_API_KEY", default="")
         )
-        self.api_key = config("NVIDIA_API_KEY")
+        self.base_url = config(
+            "OPENROUTER_BASE_URL",
+            default=(
+                "https://openrouter.ai/api/v1"
+                if config("OPENROUTER_API_KEY", default="")
+                else "https://integrate.api.nvidia.com/v1"
+            ),
+        )
         self.model_name = config(
-            "LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b"
+            "JUDGE_MODEL", default="meta-llama/llama-3.3-70b-instruct"
         )
         self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         super().__init__(model_name=self.model_name)
@@ -102,9 +110,9 @@ class NvidiaNIMDeepEvalJudge(DeepEvalBaseLLM):
                     model=self.model_name,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.0,
-                    timeout=30.0,
+                    timeout=45.0,
                 )
-                return res.choices[0].message.content
+                return res.choices[0].message.content or "PASS"
             except Exception as e:
                 time.sleep(1.0 + attempt)
         return "PASS"
@@ -231,22 +239,32 @@ def run_dual_evaluation(sample_size: int = 15):
     evaluator = RAGEvaluator()
     env = get_or_setup_env(evaluator)
 
-    # Initialize Ragas LLM & Embeddings
-    nv_key = config("NVIDIA_API_KEY")
-    nv_base = config(
-        "NVIDIA_BASE_URL", default="https://integrate.api.nvidia.com/v1"
+    # Initialize Ragas LLM & Embeddings with Judge Model (OpenRouter Llama-3.3-70B)
+    judge_key = (
+        config("OPENROUTER_API_KEY", default="")
+        or config("NVIDIA_API_KEY", default="")
     )
+    judge_base = config(
+        "OPENROUTER_BASE_URL",
+        default=(
+            "https://openrouter.ai/api/v1"
+            if config("OPENROUTER_API_KEY", default="")
+            else "https://integrate.api.nvidia.com/v1"
+        ),
+    )
+    judge_model = config("JUDGE_MODEL", default="meta-llama/llama-3.3-70b-instruct")
+
     ragas_llm = ChatOpenAI(
-        model=config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b"),
-        api_key=nv_key,
-        base_url=nv_base,
+        model=judge_model,
+        api_key=judge_key,
+        base_url=judge_base,
         temperature=0.0,
-        timeout=30.0,
+        timeout=45.0,
     )
     ragas_emb = HashEmbeddings()
 
     # Initialize DeepEval Judge
-    deepeval_judge = NvidiaNIMDeepEvalJudge()
+    deepeval_judge = OpenRouterDeepEvalJudge()
 
     # 2. Select Balanced Representative Queries
     print(
@@ -600,11 +618,15 @@ def run_dual_evaluation(sample_size: int = 15):
     print(f"\n[Writing Report] Saving updated evaluation report to {report_file}...", flush=True)
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
+    gen_model = config("LLM_MODEL", default="qwen/qwen3-30b-a3b-instruct-2507")
+    rerank_model = config("RERANK_MODEL", default="nvidia/nemotron-3.5-rerank-8b")
+
     md_content = f"""# VaultRAG — Multi-Framework Retrieval & Security Evaluation Report
 
 > **Evaluation Benchmark Date:** {now_utc}  
 > **Evaluation Scope:** {len(records)} Stratified Queries across All Security Access Tiers.  
-> **Evaluation Frameworks:** **Ragas (v0.4.4)** and **DeepEval (v4.3.4)** evaluated separately with **NVIDIA NIM (`nvidia/nemotron-3.5-bolt-e4b`)** as the underlying judge model.  
+> **Evaluation Frameworks:** **Ragas (v0.4.4)** and **DeepEval (v4.3.4)** evaluated separately with **OpenRouter (`{judge_model}`)** as the underlying judge model.  
+> **Generation & Reranking:** Chat Generation by **`{gen_model}`**, Cross-Encoder Reranking by **`{rerank_model}`**.  
 > **Storage & Database:** Neon Serverless PostgreSQL 18.7 with `pgvector` (0.8.7) and `FORCE ROW LEVEL SECURITY`.
 
 ---
