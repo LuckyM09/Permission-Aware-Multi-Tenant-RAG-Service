@@ -886,57 +886,86 @@ export default function HomePage() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. AUTHORITY & 200-QUERY BENCHMARK TELEMETRY TICKER           */}
+      {/* 3. AUTHORITY & DEEPEVAL BENCHMARK TELEMETRY TICKER            */}
       {/* ------------------------------------------------------------- */}
       <section id="benchmarks" className="py-12 bg-white/70 backdrop-blur-xs border-y border-[#E6E6E1]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <RevealOnScroll delay={0}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x-0 md:divide-x divide-[#E6E6E1]">
-              <div className="px-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+            <div className="text-center mb-6">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200 uppercase tracking-wider font-mono">
+                DeepEval Benchmark • Llama 3.3-70B Judge
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 text-center divide-y sm:divide-y-0 sm:divide-x-0 lg:divide-x divide-[#E6E6E1]">
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
                   0.00%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
                   Data Leakage Rate
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  200 / 200 Queries Isolated
+                  Zero Leaks Across Tiers
                 </div>
               </div>
 
-              <div className="px-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
                   100.0%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
-                  Citation Shield Accuracy
+                  Citation Shield
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  Zero Citation Hallucinations
+                  Anti-Leak Verification
                 </div>
               </div>
 
-              <div className="px-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  89.00%
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  90.00%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
                   Context Precision
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  Top-K Verified Document Match
+                  DeepEval Top-K Match
                 </div>
               </div>
 
-              <div className="px-4">
-                <div className="text-3xl sm:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  86.15%
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  89.60%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
-                  Context Faithfulness
+                  Context Recall
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  LLM-as-a-Judge Scored
+                  DeepEval Fact Coverage
+                </div>
+              </div>
+
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  85.00%
+                </div>
+                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
+                  Faithfulness
+                </div>
+                <div className="text-[11px] text-[#71717A] mt-0.5">
+                  DeepEval Groundedness
+                </div>
+              </div>
+
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  92.00%
+                </div>
+                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
+                  Answer Relevancy
+                </div>
+                <div className="text-[11px] text-[#71717A] mt-0.5">
+                  Llama 3.3-70B Judge
                 </div>
               </div>
             </div>
