@@ -886,14 +886,14 @@ export default function HomePage() {
       </section>
 
       {/* ------------------------------------------------------------- */}
-      {/* 3. AUTHORITY & DEEPEVAL BENCHMARK TELEMETRY TICKER            */}
+      {/* 3. AUTHORITY & RAGAS BENCHMARK TELEMETRY TICKER               */}
       {/* ------------------------------------------------------------- */}
       <section id="benchmarks" className="py-12 bg-white/70 backdrop-blur-xs border-y border-[#E6E6E1]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <RevealOnScroll delay={0}>
             <div className="text-center mb-6">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-sky-50 text-sky-800 border border-sky-200 uppercase tracking-wider font-mono">
-                DeepEval Benchmark • Llama 3.3-70B Judge
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 uppercase tracking-wider font-mono">
+                Ragas Evaluation Framework (v0.4.4) • 15 Stratified Security Queries
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 text-center divide-y sm:divide-y-0 sm:divide-x-0 lg:divide-x divide-[#E6E6E1]">
@@ -923,49 +923,49 @@ export default function HomePage() {
 
               <div className="px-3 pt-2 sm:pt-0">
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  90.00%
-                </div>
-                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
-                  Context Precision
-                </div>
-                <div className="text-[11px] text-[#71717A] mt-0.5">
-                  DeepEval Top-K Match
-                </div>
-              </div>
-
-              <div className="px-3 pt-2 sm:pt-0">
-                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  89.60%
+                  100.0%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
                   Context Recall
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  DeepEval Fact Coverage
+                  Ground Truth Attribution
                 </div>
               </div>
 
               <div className="px-3 pt-2 sm:pt-0">
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  85.00%
+                  70.00%
+                </div>
+                <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
+                  Context Precision
+                </div>
+                <div className="text-[11px] text-[#71717A] mt-0.5">
+                  Signal-to-Noise Ratio
+                </div>
+              </div>
+
+              <div className="px-3 pt-2 sm:pt-0">
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
+                  92.59%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
                   Faithfulness
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  DeepEval Groundedness
+                  Atomic Claim Entailment
                 </div>
               </div>
 
               <div className="px-3 pt-2 sm:pt-0">
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] tracking-tight font-mono">
-                  92.00%
+                  76.12%
                 </div>
                 <div className="text-xs font-semibold text-[#52525B] uppercase tracking-wider mt-1">
-                  Answer Relevancy
+                  Answer Correctness
                 </div>
                 <div className="text-[11px] text-[#71717A] mt-0.5">
-                  Llama 3.3-70B Judge
+                  Factual Alignment
                 </div>
               </div>
             </div>
