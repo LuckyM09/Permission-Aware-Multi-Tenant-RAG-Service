@@ -143,7 +143,7 @@ def get_langchain_chat_model(
     or MockLangChainChatModel in offline/test environments.
     """
     resolved_model = (
-        model or config("LLM_MODEL", default="qwen/qwen3-30b-a3b-instruct-2507")
+        model or config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b")
     )
 
     openrouter_key = config("OPENROUTER_API_KEY", default="")

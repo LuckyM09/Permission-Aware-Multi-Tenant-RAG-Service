@@ -106,7 +106,12 @@ class RerankerAdapter:
             idx = item["index"]
             cand_copy = dict(candidates[idx])
             logit = item.get("logit", 0.0)
-            norm_score = round(1.0 / (1.0 + math.exp(-logit)), 4)
+            # Calibrate neural cross-encoder logits:
+            # NVIDIA Nemotron-3.5-Rerank-8B outputs uncalibrated logits typically centered at -2.5.
+            # Shifting by +2.5 aligns relevant matches (logits -1.5 to 0.0) to scores 0.73 - 0.92,
+            # while rejecting irrelevant noise (logits < -3.65) below the 0.25 retrieval cutoff.
+            calibrated_logit = logit + 2.5
+            norm_score = round(1.0 / (1.0 + math.exp(-calibrated_logit)), 4)
             cand_copy["rerank_score"] = norm_score
             cand_copy["score"] = norm_score
             cand_copy["reranked"] = True
