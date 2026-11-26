@@ -25,7 +25,9 @@ class EmbeddingAdapter:
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
+        allow_mock: Optional[bool] = None,
     ):
+        self._allow_mock_override = allow_mock
         self.api_key = (
             api_key
             or config("NVIDIA_API_KEY", default="")
@@ -41,7 +43,7 @@ class EmbeddingAdapter:
 
         self.model = (
             model
-            or config("EMBEDDING_MODEL", default="nvidia/nemotron-3-embed-1b")
+            or config("EMBEDDING_MODEL", default="nvidia/nemotron-3.5-embed-1b")
         )
 
         import sys
@@ -66,19 +68,30 @@ class EmbeddingAdapter:
     @property
     def allows_mock(self) -> bool:
         """Mock fallback is strictly permitted in local development/tests only."""
+        if self._allow_mock_override is not None:
+            return self._allow_mock_override
         from django.conf import settings
 
         return getattr(settings, "ALLOW_MOCK_AI_FALLBACK", getattr(settings, "DEBUG", False))
 
     def get_embedding(self, text: str) -> list[float]:
-        return self.get_embeddings_batch([text])[0]
+        return self.get_embeddings_batch([text], input_type="query")[0]
 
-    def get_embeddings_batch(self, texts: list[str]) -> list[list[float]]:
+    def get_embeddings_batch(
+        self, texts: list[str], input_type: str = "passage"
+    ) -> list[list[float]]:
         if not texts:
             return []
 
         if self.langchain_embeddings is not None:
             try:
+                if "nvidia" in self.base_url.lower() or "nemotron" in self.model.lower():
+                    res = self.langchain_embeddings.client.create(
+                        model=self.model,
+                        input=texts,
+                        extra_body={"input_type": input_type},
+                    )
+                    return [item.embedding for item in res.data]
                 return self.langchain_embeddings.embed_documents(texts)
             except Exception as exc:
                 logger.error(

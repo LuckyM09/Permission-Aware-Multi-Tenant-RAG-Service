@@ -28,6 +28,9 @@ class RerankerAdapter:
         self.use_cohere = bool(
             self.cohere_api_key and not self.cohere_api_key.startswith("your_")
         )
+        import requests
+
+        self._session = requests.Session()
 
     def rerank(
         self,
@@ -82,7 +85,7 @@ class RerankerAdapter:
             "passages": passages,
             "truncate": "END",
         }
-        res = requests.post(
+        res = self._session.post(
             url,
             headers={
                 "Authorization": f"Bearer {self.nvidia_api_key}",
@@ -193,7 +196,7 @@ class RerankerAdapter:
         import requests
 
         docs = [c.get("text", "") for c in candidates]
-        res = requests.post(
+        res = self._session.post(
             "https://api.cohere.com/v1/rerank",
             headers={
                 "Authorization": f"Bearer {self.cohere_api_key}",

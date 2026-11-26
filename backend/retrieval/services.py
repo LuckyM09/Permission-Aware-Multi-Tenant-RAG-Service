@@ -78,7 +78,7 @@ class RetrievalService:
             return []
 
         # Retrieve a broader candidate pool for fusion and reranking (retrieve wide, rerank narrow)
-        candidate_limit = max(top_k * 6, 40)
+        candidate_limit = max(top_k * 8, 60)
 
         # 2. Query Expansion (Multi-Query Retrieval) or Single-Query Retrieval
         query_variations = [clean_query]
@@ -119,11 +119,12 @@ class RetrievalService:
         if not candidates:
             return []
 
-        # 3. Apply Cross-Encoder Reranking
+        # 3. Apply Cross-Encoder Reranking (rerank wide when parent expansion is enabled for window diversity)
+        rerank_pool_k = max(top_k * 2, 16) if expand_parent else top_k
         if rerank:
-            final_results = self.reranker.rerank(clean_query, candidates, top_k=top_k)
+            final_results = self.reranker.rerank(clean_query, candidates, top_k=rerank_pool_k)
         else:
-            final_results = candidates[:top_k]
+            final_results = candidates[:rerank_pool_k]
 
         # 4. Filter by threshold if requested
         if threshold > 0.0:
@@ -133,11 +134,50 @@ class RetrievalService:
                 if r.get("score", r.get("similarity", 0.0)) >= threshold
             ]
 
-        # 5. Parent-Child Context Expansion (Small-to-Big Retrieval)
+        # 5. Deduplicate overlapping adjacent windows when expanding parent contexts
         if expand_parent and final_results:
+            final_results = self._select_diverse_windows(final_results, top_k=top_k)
             final_results = self._expand_parent_contexts(final_results, window_size=1)
+        else:
+            final_results = final_results[:top_k]
 
         return final_results
+
+    @staticmethod
+    def _select_diverse_windows(
+        candidates: list[dict[str, Any]], top_k: int
+    ) -> list[dict[str, Any]]:
+        """
+        Selects up to top_k chunks while avoiding redundant adjacent parent windows
+        (position within +/-1 in the same document), falling back to deferred chunks
+        only if fewer than top_k non-overlapping regions exist.
+        """
+        selected: list[dict[str, Any]] = []
+        deferred: list[dict[str, Any]] = []
+        seen_positions: dict[str, list[int]] = {}
+
+        for cand in candidates:
+            doc_id = str(cand.get("document_id", ""))
+            pos = cand.get("position")
+            if pos is None:
+                pos = cand.get("metadata", {}).get("position")
+
+            if doc_id and pos is not None:
+                existing = seen_positions.get(doc_id, [])
+                if any(abs(pos - p) <= 1 for p in existing):
+                    deferred.append(cand)
+                    continue
+                seen_positions.setdefault(doc_id, []).append(pos)
+
+            selected.append(cand)
+            if len(selected) >= top_k:
+                return selected
+
+        for cand in deferred:
+            if len(selected) >= top_k:
+                break
+            selected.append(cand)
+        return selected
 
     def _get_acl_scoped_queryset(
         self, user_ctx: UserContext, filters: dict[str, Any] | None = None

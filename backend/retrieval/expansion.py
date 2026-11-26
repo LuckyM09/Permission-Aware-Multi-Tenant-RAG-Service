@@ -67,15 +67,15 @@ class QueryExpander:
 
         # 2. Key-phrase topical extraction if room remains
         if len(queries) < (max_expansions + 1):
-            # Convert question into affirmative document topic
+            # Convert question into clean affirmative keywords
             affirmative = re.sub(
-                r"^(what\s+is|how\s+to|explain|can\s+you\s+describe|tell\s+me\s+about)\s+",
+                r"^(what\s+is|what\s+are|how\s+to|how\s+do|explain|can\s+you\s+describe|tell\s+me\s+about|which|where|when|who)\s+",
                 "",
                 clean_query,
                 flags=re.IGNORECASE,
             ).strip(" ?.")
-            if affirmative and affirmative != clean_query and affirmative not in queries:
-                queries.append(f"{affirmative} architecture guidelines overview")
+            if affirmative and affirmative.lower() != clean_query.lower() and affirmative not in queries:
+                queries.append(affirmative)
 
         return queries[: max_expansions + 1]
 

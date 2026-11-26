@@ -136,16 +136,19 @@ def get_langchain_chat_model(
     streaming: bool = True,
     temperature: float = 0.1,
     max_tokens: int = 1024,
+    max_retries: int = 3,
+    reasoning_effort: str | None = None,
 ) -> BaseChatModel:
     """
     Returns a configured LangChain ChatModel instance.
-    Supports OpenRouter, NVIDIA NIM, and OpenAI endpoints,
-    or MockLangChainChatModel in offline/test environments.
+    Supports Google Gemini (OpenAI-compatible endpoint), OpenRouter, NVIDIA NIM,
+    and OpenAI endpoints, or MockLangChainChatModel in offline/test environments.
     """
     resolved_model = (
         model or config("LLM_MODEL", default="nvidia/nemotron-3.5-bolt-e4b")
     )
 
+    google_key = config("GOOGLE_API_KEY", default="")
     openrouter_key = config("OPENROUTER_API_KEY", default="")
     nvidia_key = config("NVIDIA_API_KEY", default="")
     openai_key = config("OPENAI_API_KEY", default="")
@@ -154,10 +157,16 @@ def get_langchain_chat_model(
     if api_key:
         resolved_api_key = api_key
         resolved_base_url = (base_url or "https://integrate.api.nvidia.com/v1").rstrip("/")
+    elif google_key and "gemini" in resolved_model.lower():
+        resolved_api_key = google_key
+        resolved_base_url = config(
+            "GOOGLE_BASE_URL",
+            default="https://generativelanguage.googleapis.com/v1beta/openai/",
+        ).rstrip("/")
     elif openrouter_key and (
         "qwen" in resolved_model.lower()
         or "llama" in resolved_model.lower()
-        or "/" in resolved_model and not resolved_model.startswith("nvidia/")
+        or ("/" in resolved_model and not resolved_model.startswith("nvidia/"))
     ):
         resolved_api_key = openrouter_key
         resolved_base_url = config(
@@ -194,25 +203,38 @@ def get_langchain_chat_model(
         logger.info("[LangChain] Using MockLangChainChatModel fallback.")
         return MockLangChainChatModel()
 
-    return ChatOpenAI(
-        model=resolved_model,
-        api_key=resolved_api_key,
-        base_url=resolved_base_url,
-        streaming=streaming,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        timeout=60.0,
-        request_timeout=60.0,
-    )
+    chat_kwargs: dict[str, Any] = {
+        "model": resolved_model,
+        "api_key": resolved_api_key,
+        "base_url": resolved_base_url,
+        "streaming": streaming,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "max_retries": max_retries,
+        "timeout": 60.0,
+        "request_timeout": 60.0,
+    }
+    if any(
+        tok in resolved_model.lower()
+        for tok in ("gemini-4", "lightning-30b", "super-vl-120b", "ultra-550b", "mistral-large-4")
+    ):
+        chat_kwargs["reasoning_effort"] = reasoning_effort or "low"
+        chat_kwargs["max_tokens"] = max(max_tokens, 2048)
+    elif reasoning_effort and "bolt" not in resolved_model.lower():
+        chat_kwargs["reasoning_effort"] = reasoning_effort
+
+    return ChatOpenAI(**chat_kwargs)
 
 
 def create_vaultrag_lcel_chain(
     chat_model: BaseChatModel | None = None,
+    allow_mock_fallback: bool = True,
 ) -> Runnable:
     """
     Assembles a modern LangChain Expression Language (LCEL) chain:
     `chain = (prompt | model | StrOutputParser()).with_fallbacks([fallback_chain])`
-    Guarantees resilient 24/7 uptime even if remote NIM endpoints return 503 / 429 / timeouts.
+    Guarantees resilient 24/7 uptime even if remote endpoints return 503 / 429 / timeouts,
+    unless allow_mock_fallback is explicitly disabled (e.g. during strict benchmarking).
     """
     prompt = create_vaultrag_prompt()
     primary_model = chat_model or get_langchain_chat_model()
@@ -220,7 +242,7 @@ def create_vaultrag_lcel_chain(
 
     primary_chain = prompt | primary_model | output_parser
 
-    if isinstance(primary_model, MockLangChainChatModel):
+    if isinstance(primary_model, MockLangChainChatModel) or not allow_mock_fallback:
         return primary_chain
 
     fallback_chain = prompt | MockLangChainChatModel() | output_parser
